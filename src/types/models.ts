@@ -59,6 +59,9 @@ export interface Explanation {
 export interface Question {
   /** Unique identifier for the question. */
   id: string;
+  examName?: string;
+  examYear?: number;
+  examDateShift?: string;
   /** The legacy or human-readable ID of the question. */
   v1_id?: string;
   /** Source metadata for the question. */

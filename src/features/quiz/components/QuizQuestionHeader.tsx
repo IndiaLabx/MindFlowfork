@@ -78,14 +78,14 @@ export function QuizQuestionHeader({
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs items-center justify-end">
-        {question.sourceInfo?.examName && (
+        {(question.examName || question.sourceInfo?.examName) && (
              <Badge variant="neutral" className="font-normal bg-gray-50 dark:bg-gray-900">
-               {question.sourceInfo.examName} <span className="text-gray-400 mx-1">|</span> {question.sourceInfo.examYear}
+               {question.examName || question.sourceInfo?.examName} <span className="text-gray-400 mx-1">|</span> {question.examYear || question.sourceInfo?.examYear}
              </Badge>
         )}
-        {question.sourceInfo?.examDateShift && (
+        {(question.examDateShift || question.sourceInfo?.examDateShift) && (
              <Badge variant="outline" icon={<Calendar className="w-3 h-3 text-gray-400" />} className="font-normal border-dashed">
-               {question.sourceInfo.examDateShift}
+               {question.examDateShift || question.sourceInfo?.examDateShift}
              </Badge>
         )}
       </div>

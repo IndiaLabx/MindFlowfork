@@ -207,17 +207,17 @@ export function QuizQuestionDisplay({
                     <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-1.5 py-0.5 rounded text-gray-500 dark:text-gray-400">
                          <Hash className="w-3 h-3" /> {question.v1_id || question.id}
                     </span>
-                    {question.sourceInfo?.examName && (
+                    {(question.examName || question.sourceInfo?.examName) && (
                         <span className="flex items-center gap-1 text-indigo-400">
                             <FileText className="w-3 h-3" />
-                            {question.sourceInfo.examName} {question.sourceInfo.examYear}
+                            {question.examName || question.sourceInfo?.examName} {question.examYear || question.sourceInfo?.examYear}
                         </span>
                     )}
                     {/* Exam Shift Detail - Now visible on all screens and beside exam name */}
-                    {question.sourceInfo?.examDateShift && (
+                    {(question.examDateShift || question.sourceInfo?.examDateShift) && (
                         <span className="flex items-center gap-1 text-gray-400 dark:text-slate-500 border-l border-gray-200 dark:border-gray-700 pl-2 ml-1">
                             <Calendar className="w-3 h-3" />
-                            {question.sourceInfo.examDateShift}
+                            {question.examDateShift || question.sourceInfo?.examDateShift}
                         </span>
                     )}
                 </div>
