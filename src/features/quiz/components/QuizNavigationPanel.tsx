@@ -110,7 +110,7 @@ export function QuizNavigationPanel({
   } else {
     const subjectMap = new Map<string, Question[]>();
     questions.forEach((q) => {
-      const sub = q.classification?.subject || "Unknown Subject";
+      const sub = q.subject || q.classification?.subject || "Unknown Subject";
       if (!subjectMap.has(sub)) subjectMap.set(sub, []);
       subjectMap.get(sub)!.push(q);
     });
