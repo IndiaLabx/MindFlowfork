@@ -52,7 +52,7 @@ export function QuizNavigationPanel({
   const subjects = useMemo(() => {
     const subs = new Set<string>();
     questions.forEach((q) => {
-      if (q.classification?.subject) subs.add(q.classification.subject);
+      const subject = q.subject || q.classification?.subject; if (subject) subs.add(subject);
     });
     return Array.from(subs);
   }, [questions]);
@@ -74,15 +74,15 @@ export function QuizNavigationPanel({
     if (mode === "subject") {
       // Reorder global questions array by subject
       const newSortedQuestions = [...questions].sort((a, b) => {
-        const subA = a.classification?.subject || "Unknown";
-        const subB = b.classification?.subject || "Unknown";
+        const subA = a.subject || a.classification?.subject || "Unknown";
+        const subB = b.subject || b.classification?.subject || "Unknown";
         return subA.localeCompare(subB);
       });
       onReorderQuestions?.(newSortedQuestions);
       // Set open groups to all open by default when switching to subject mode for easier viewing
       const subjects = Array.from(
         new Set(
-          newSortedQuestions.map((q) => q.classification?.subject || "Unknown"),
+          newSortedQuestions.map((q) => q.subject || q.classification?.subject || "Unknown"),
         ),
       );
       setOpenGroups(new Set(subjects.map((_, i) => i)));
@@ -233,7 +233,7 @@ export function QuizNavigationPanel({
         </div>
 
         {/* Grouping Controls */}
-        {hasMultipleSubjects && (
+        {(hasMultipleSubjects || true) && (
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800">
             <div className="flex bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
               <button

@@ -62,6 +62,9 @@ export interface Question {
   examName?: string;
   examYear?: number;
   examDateShift?: string;
+  subject?: string;
+  topic?: string;
+  subTopic?: string;
   /** The legacy or human-readable ID of the question. */
   v1_id?: string;
   /** Source metadata for the question. */
