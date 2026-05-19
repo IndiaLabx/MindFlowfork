@@ -178,7 +178,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-         alert("You must be logged in to create a quiz.");
+         useNotificationStore.getState().showToast({ variant: "error", message: "You must be logged in to create a quiz." });
          setIsStartingQuiz(false);
          return;
       }
@@ -222,7 +222,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
       if (quizError) {
         console.error('Error saving quiz to Supabase:', quizError);
-        alert('Failed to save quiz to server. Please try again.');
+        useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to save quiz to server. Please try again.' });
         setIsStartingQuiz(false);
         return;
       }
@@ -239,7 +239,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
       if (bridgeError) {
         console.error('Error saving bridge data:', bridgeError);
-        alert('Failed to save quiz questions to server. Please try again.');
+        useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to save quiz questions to server. Please try again.' });
         setIsStartingQuiz(false);
         return;
       }
@@ -249,7 +249,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
     } catch (err) {
       console.error("Failed to create quiz:", err);
-      alert("Failed to create quiz. Please try again.");
+      useNotificationStore.getState().showToast({ variant: 'error', message: 'Failed to create quiz. Please try again.' });
     } finally {
       setIsStartingQuiz(false);
     }
@@ -277,7 +277,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
     const shuffled = [...subset].sort(() => 0.5 - Math.random()).slice(0, 25);
 
     if (shuffled.length === 0) {
-      alert(`No questions found for difficulty: ${type}`);
+      useNotificationStore.getState().showToast({ variant: 'error', message: `No questions found for difficulty: ${type}` });
       return;
     }
 

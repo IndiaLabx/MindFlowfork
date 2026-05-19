@@ -126,7 +126,7 @@ const AppRoutesContent: React.FC = () => {
         } catch (error) {
             useNotificationStore.getState().showToast({
                 variant: 'error',
-                message: 'Failed to submit quiz. Please check your connection and try again.',
+                message: 'Submission failed. Your progress is saved locally. Please try again.',
                 duration: 5000
             });
         }

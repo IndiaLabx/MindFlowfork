@@ -11,6 +11,8 @@ export type QuizStatus =
   | 'quiz'               // Active Quiz Session (Question View)
   | 'flashcards'         // Active Idiom Flashcard Session
   | 'flashcards-complete'// Idiom Flashcard Summary
+  | 'finalizing'       // RPC finalization in flight
+  | 'finalize_failed'  // Finalization failed, retryable
   | 'result'             // Quiz Result Summary
   | 'english-home'       // English Subject Home
   | 'idioms-config'      // Idioms Configuration

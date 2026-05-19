@@ -31,6 +31,8 @@ interface QuizSessionState extends QuizRuntimeState {
   pauseQuiz: (questionId?: string, remainingTime?: number) => void;
   resumeQuiz: () => void;
   finishQuiz: () => void;
+  setFinalizing: () => void;
+  setFinalizeFailed: () => void;
   submitSessionResults: (results: { answers: Record<string, string>; timeTaken: Record<string, number>; score: number; bookmarks: string[] }) => void;
   restartQuiz: () => void;
   goHome: () => void;
@@ -60,6 +62,7 @@ export const initialState: QuizRuntimeState = {
 
 const flushToCloud = async (state: QuizRuntimeState) => {
   if (typeof window === 'undefined' || !navigator.onLine || !state.quizId) return;
+  if (state.status === 'finalizing' || state.status === 'result' || state.status === 'finalize_failed') return;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
@@ -216,9 +219,11 @@ export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
 
   resumeQuiz: () => set({ isPaused: false }),
 
-  finishQuiz: () => { set({ status: 'result' }); flushToCloud(get()); },
+  finishQuiz: () => { set({ status: 'result' }); },
+  setFinalizing: () => set({ status: 'finalizing' }),
+  setFinalizeFailed: () => set({ status: 'finalize_failed' }),
 
-  submitSessionResults: (results) => { set((state) => ({ answers: results.answers, timeTaken: Object.keys(results.timeTaken).length > 0 ? results.timeTaken : state.timeTaken, score: results.score, bookmarks: results.bookmarks, status: 'result' })); flushToCloud(get()); },
+  submitSessionResults: (results) => { set((state) => ({ answers: results.answers, timeTaken: Object.keys(results.timeTaken).length > 0 ? results.timeTaken : state.timeTaken, score: results.score, bookmarks: results.bookmarks, status: 'result' })); },
 
 
   restartQuiz: () => set((state) => {

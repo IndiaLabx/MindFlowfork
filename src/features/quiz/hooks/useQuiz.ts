@@ -149,6 +149,8 @@ export const useQuiz = () => {
 
   // Wrap submitSessionResults to include complex logic previously in useQuiz
   const submitSessionResults = useCallback(async (results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
+    state.setFinalizing();
+    // We do not abort ongoing fetches explicitly here because fetch logic is decoupled, but the store status update will stop further autosaves.
     logEvent('quiz_completed', {
       score: results.score,
       total_questions: state.activeQuestions.length,
@@ -220,13 +222,23 @@ export const useQuiz = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && state.quizId) {
 
-            const stateToSave = { ...state, status: 'result' };
-            Object.keys(stateToSave).forEach(key => {
-              if (typeof (stateToSave as any)[key] === 'function') {
-                delete (stateToSave as any)[key];
-              }
-            });
-            const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
+            // Explicit whitelist serialization for Postgres JSONB payload
+            const stateWithoutQuestions = {
+                status: 'result',
+                mode: state.mode,
+                score: results.score,
+                answers: results.answers,
+                timeTaken: results.timeTaken,
+                remainingTimes: state.remainingTimes,
+                quizTimeRemaining: state.quizTimeRemaining,
+                bookmarks: results.bookmarks,
+                markedForReview: state.markedForReview,
+                hiddenOptions: state.hiddenOptions,
+                filters: state.filters,
+                isPaused: state.isPaused,
+                quizId: state.quizId,
+                currentQuestionIndex: state.currentQuestionIndex
+            };
 
             const { data: newHistoryId, error: rpcError } = await supabase.rpc('submit_quiz_session', {
                 p_quiz_id: state.quizId,
@@ -243,17 +255,19 @@ export const useQuiz = () => {
 
             if (rpcError) {
                 console.error("Failed atomic quiz submission RPC:", rpcError);
+                state.setFinalizeFailed();
                 throw new Error(rpcError.message || 'Failed to submit quiz session');
             } else {
                 console.log("Atomic submission successful. New history ID:", newHistoryId);
+                // Only mark fully completed locally once the server confirms
+                state.submitSessionResults(results);
             }
         }
     } catch (err) {
         console.error("Atomic Push Error:", err);
+        state.setFinalizeFailed();
         throw err;
     }
-
-    state.submitSessionResults(results);
   }, [state.activeQuestions, state.mode, state.filters?.difficulty, state.submitSessionResults, state.quizId, state]);
 
   const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
