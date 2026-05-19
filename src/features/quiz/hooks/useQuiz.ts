@@ -149,7 +149,7 @@ export const useQuiz = () => {
 
   // Wrap submitSessionResults to include complex logic previously in useQuiz
   const submitSessionResults = useCallback(async (results: { answers: Record<string, string>, timeTaken: Record<string, number>, score: number, bookmarks: string[] }) => {
-    logEvent('quiz_completed', {
+    await logEvent('quiz_completed', {
       score: results.score,
       total_questions: state.activeQuestions.length,
       mode: state.mode
