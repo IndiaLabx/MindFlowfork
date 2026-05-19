@@ -164,7 +164,7 @@ export const useQuiz = () => {
     let totalTimeSpent = 0;
 
     state.activeQuestions.forEach(q => {
-      const subject = q.classification.subject || 'Unknown';
+      const subject = q?.subject || q?.classification?.subject || 'Unknown';
       if (!subjectStats[subject]) {
         subjectStats[subject] = { attempted: 0, correct: 0, incorrect: 0, skipped: 0, accuracy: 0 };
       }
@@ -264,7 +264,7 @@ export const useQuiz = () => {
             }
         }
     } catch (err) {
-        console.error("Atomic Push Error:", err);
+        console.error("Critical Execution Error during quiz finalization:", err);
         state.setFinalizeFailed();
         throw err;
     }
