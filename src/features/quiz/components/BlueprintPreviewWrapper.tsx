@@ -48,9 +48,56 @@ export const BlueprintPreviewWrapper: React.FC = () => {
     fetchBlueprint();
   }, [id, user, navigate, showToast]);
 
-  const handleStartExam = (questions: Question[]) => {
+  const handleStartExam = async (questions: Question[]) => {
     // Launching in native God Mode for strict exam simulation
     const quizId = crypto.randomUUID();
+    const mode = 'god';
+
+    // Save to database first!
+    if (user) {
+        try {
+            const bridgeData = questions.map((q, idx) => ({
+                question_id: q.id,
+                sort_order: idx
+            }));
+
+            const stateToSave = {
+                currentQuestionIndex: 0,
+                score: 0,
+                answers: {},
+                timeTaken: {},
+                remainingTimes: {},
+                quizTimeRemaining: 0,
+                bookmarks: [],
+                markedForReview: [],
+                hiddenOptions: {},
+                isPaused: false,
+                status: 'quiz',
+                mode: mode,
+                quizId: quizId
+            };
+
+            const { error: rpcError } = await supabase.rpc('create_quiz_session', {
+                p_quiz_id: quizId,
+                p_user_id: user.id,
+                p_name: blueprint?.name || 'Blueprint Exam',
+                p_created_at: Date.now(),
+                p_filters: { isGodMode: true },
+                p_mode: mode,
+                p_state: stateToSave,
+                p_questions: bridgeData
+            });
+
+            if (rpcError) {
+                console.error("Failed to save blueprint quiz to db:", rpcError);
+                showToast({ title: 'Error', message: 'Could not start exam session', variant: 'error' });
+                return;
+            }
+        } catch (err) {
+            console.error("Error saving blueprint quiz:", err);
+        }
+    }
+
     startQuiz(questions, { subject: [], topic: [], subTopic: [], difficulty: [], isGodMode: true } as any, 'god', quizId);
     navigate(`/quiz/session/god/${quizId}`);
   };
