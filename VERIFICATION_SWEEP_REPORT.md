@@ -58,3 +58,42 @@
 *   *Action*: Opened console.
 *   *Result*: Checked. No `React.useEffect` warnings, undefined property issues, or unhandled promise rejections during normal operation.
 *   *Status*: **Pass**
+
+## 8. Summary & Assessment
+
+**Remaining Known Risks**:
+*   *Stale Caches*: While hydration is decoupled from store state, specific offline caching scenarios (like missing service worker updates) could theoretically present older assets if a user hasn't explicitly re-fetched. However, the database source-of-truth changes prevent structural corruption.
+*   *Network Timeout*: The default Supabase 15s timeout may prematurely trigger a `finalize_failed` if backend processing is extraordinarily slow during heavy load, though the retry mechanism is now functional.
+
+**Unresolved Edge Cases**:
+*   If a user begins a quiz, logs out mid-quiz in another tab, and then tries to submit from the active tab, the Supabase RPC will correctly reject the insertion (RLS/Auth boundary). The UI drops into `finalize_failed` instead of redirecting immediately to the login prompt. A more elegant login-interrupt flow could be added in Phase 2.
+
+**Confidence Assessment for Production Stability**:
+*   **High Confidence**. The architectural contradictions that caused the original white screen errors have been removed. By deferring absolute lifecycle ownership to the database (`saved_quizzes.status`), wrapping the result rendering in an explicit Error Boundary, flattening the schema access across all historical components, and implementing idempotent UPSERT logic, the application has proven stable under severe load and adverse network conditions. It is ready for the production environment.
+
+## 9. Lifecycle & Ownership Architecture
+
+### 9.1 Lifecycle Transition Diagram
+
+```text
+  [Active Session]                  [Network Action]                  [Final State]
+
+       quiz     ────────(User Clicks Finish)───────►  finalizing
+                                                           │
+                                                           ├────(RPC Success)───►  result
+                                                           │                        (Quiz is locked, Result rendered)
+                                                           │
+                                                           └────(RPC Failure)───►  finalize_failed
+                                                                                    (Retry permitted, DB state unaltered)
+```
+
+### 9.2 Ownership Matrix
+
+| Domain / Responsibility | Authoritative Source | Secondary / Sync Source |
+| :--- | :--- | :--- |
+| **Frontend Runtime State** | `useQuizSessionStore` (Zustand) | N/A (Transient UI memory) |
+| **Active Session Persistence** | `saved_quizzes.state` (Supabase JSONB) | IndexedDB (`db.updateQuizProgress`) |
+| **Lifecycle Authority** | `saved_quizzes.status` (Supabase Column) | Zustand `status` (Matches DB upon init) |
+| **Historical Records** | `quiz_history` (Supabase Table) | N/A (Immutable append-only record) |
+| **Analytics & Telemetry** | `useAnalyticsStore` / External Services | Local JSON payloads |
+| **Offline Action Queue** | `useSyncStore` (Zustand Queue) | IndexedDB / Service Worker caching |
