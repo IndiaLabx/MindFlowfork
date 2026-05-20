@@ -8,15 +8,19 @@ export function useAppVisibilityReawakening() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const handleReawaken = async () => {
+    const handleReawaken = () => {
       console.log('App woke up! Forcing session refresh and network reconnect...');
 
-      // 1. Force Supabase to check and refresh the auth session
-      await supabase.auth.getSession();
-
-      // 2. Tell React Query that the network is back online
-      // This forces React Query to retry any stalled "pending" queries
+      // 1. Tell React Query that the network is back online IMMEDIATELY.
+      // Do not await the auth session. This breaks the deadlock if auth hangs.
+      // This forces React Query to retry any stalled "pending" queries.
       queryClient.resumePausedMutations();
+
+      // 2. Force Supabase to check and refresh the auth session CONCURRENTLY.
+      // We float this promise and catch errors to avoid unhandled rejections.
+      supabase.auth.getSession().catch(error => {
+          console.error('Background session refresh failed on reawaken:', error);
+      });
     };
 
     // Web / PWA listener
