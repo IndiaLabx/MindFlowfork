@@ -302,7 +302,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     } />
 
                     <Route path="/result/:quizId" element={
-                        <ResultGuard>
+                        <ErrorBoundary><ResultGuard>
                             {state.mode === 'mock' ? (
                             <Suspense fallback={<SynapticLoader />}><MockQuizResult
                                 score={state.score}
@@ -338,7 +338,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             /></Suspense>
                         )
                     }
-                        </ResultGuard>
+                        </ResultGuard></ErrorBoundary>
                     } />
 
                     <Route path="/flashcards/summary" element={

@@ -73,7 +73,7 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFli
 
           {/* Footer Tags */}
           <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{idiom.properties.difficulty}</span>
+            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{idiom.properties?.difficulty}</span>
             <span>#{serialNumber}</span>
             <span>{idiom.sourceInfo.pdfName} | {idiom.sourceInfo.examYear}</span>
           </div>

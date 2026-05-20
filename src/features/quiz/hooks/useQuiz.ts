@@ -48,7 +48,7 @@ export const useQuiz = () => {
 
   // Persistence Effect: Server-Side Optimistic UI + Debounce + Safety Nets
   useEffect(() => {
-    if (state.quizId && (state.status === 'quiz' || state.status === 'result')) {
+    if (state.quizId && state.status === 'quiz') {
       const stateToSave = { ...state };
       Object.keys(stateToSave).forEach(key => {
         if (typeof (stateToSave as any)[key] === 'function') {
@@ -264,7 +264,7 @@ export const useQuiz = () => {
             }
         }
     } catch (err) {
-        console.error("Critical Execution Error during quiz finalization:", err);
+        console.error("[CRITICAL] Finalize Error:", err, "State:", state);
         state.setFinalizeFailed();
         throw err;
     }

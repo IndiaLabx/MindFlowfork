@@ -105,7 +105,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
   const subjectPerformance = useMemo(() => {
       const s: Record<string, { total: number, correct: number }> = {};
       questions.forEach(q => {
-          const sub = q.classification.subject;
+          const sub = q.subject ?? q.classification?.subject ?? "Unknown";
           if (!s[sub]) s[sub] = { total: 0, correct: 0 };
           s[sub].total++;
           if (answers[q.id] === q.correct) s[sub].correct++;

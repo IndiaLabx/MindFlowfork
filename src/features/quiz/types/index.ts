@@ -78,14 +78,14 @@ export const filterKeys = [
  */
 export function getQuestionValue(question: Question, key: keyof InitialFilters): string | string[] | undefined {
   switch (key) {
-    case 'subject': return question.classification.subject;
-    case 'topic': return question.classification.topic;
-    case 'subTopic': return question.classification.subTopic;
-    case 'difficulty': return question.properties.difficulty;
-    case 'questionType': return question.properties.questionType;
-    case 'examName': return question.sourceInfo.examName;
-    case 'examYear': return String(question.sourceInfo.examYear);
-    case 'examDateShift': return question.sourceInfo.examDateShift;
+    case 'subject': return question.subject ?? question.classification?.subject;
+    case 'topic': return question.topic ?? question.classification?.topic;
+    case 'subTopic': return question.subTopic ?? question.classification?.subTopic;
+    case 'difficulty': return question.properties?.difficulty;
+    case 'questionType': return question.properties?.questionType;
+    case 'examName': return question.examName ?? question.sourceInfo?.examName;
+    case 'examYear': return String(question.examYear ?? question.sourceInfo?.examYear);
+    case 'examDateShift': return question.examDateShift ?? question.sourceInfo?.examDateShift;
     case 'tags': return question.tags;
     default: return undefined;
   }

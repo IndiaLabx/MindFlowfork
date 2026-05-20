@@ -43,10 +43,10 @@ export const BlueprintPreview: React.FC<BlueprintPreviewProps> = ({ blueprint, o
       // 4. Group stats for UI
       const breakdown = queries.map(q => {
         const foundCount = questions.filter(fq =>
-          (q.subject ? fq.classification.subject === q.subject : true) &&
-          (q.topic ? fq.classification.topic === q.topic : true) &&
-          (q.subTopic ? fq.classification.subTopic === q.subTopic : true) &&
-          (q.difficulty !== 'All' ? fq.properties.difficulty === q.difficulty : true)
+          (q.subject ? (fq.subject ?? fq.classification?.subject) === q.subject : true) &&
+          (q.topic ? (fq.topic ?? fq.classification?.topic) === q.topic : true) &&
+          (q.subTopic ? (fq.subTopic ?? fq.classification?.subTopic) === q.subTopic : true) &&
+          (q.difficulty !== 'All' ? (fq.properties?.difficulty) === q.difficulty : true)
         ).length;
 
         return {

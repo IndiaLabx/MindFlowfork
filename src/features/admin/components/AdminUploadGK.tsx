@@ -514,7 +514,7 @@ const BulkUpload: React.FC = () => {
                     // Classification
                     if (!item.classification) currentErrors.push(`Q${qNum}: Missing 'classification'`);
                     else {
-                        flatItem.subject = item.classification.subject || '';
+                        flatItem.subject = (item.subject ?? item.classification?.subject) || '';
                         flatItem.topic = item.classification.topic || '';
                         flatItem.subTopic = item.classification.subTopic || '';
                     }
@@ -526,8 +526,8 @@ const BulkUpload: React.FC = () => {
                     // Properties
                     if (!item.properties) currentErrors.push(`Q${qNum}: Missing 'properties'`);
                     else {
-                        flatItem.difficulty = item.properties.difficulty || '';
-                        flatItem.questionType = item.properties.questionType || '';
+                        flatItem.difficulty = (item.difficulty ?? item.properties?.difficulty) || '';
+                        flatItem.questionType = (item.questionType ?? item.properties?.questionType) || '';
                     }
 
                     // Root strings

@@ -24,8 +24,8 @@ export const generateBilingualPdf = async (
     const examNamesSet = new Set<string>();
 
     for (const q of questions) {
-        if (q.classification?.subject) subjectsSet.add(q.classification.subject);
-        if (q.properties?.difficulty) difficultiesSet.add(q.properties.difficulty);
+        const subject = q.subject ?? q.classification?.subject; if (subject) subjectsSet.add(subject);
+        const difficulty = q.difficulty ?? q.properties?.difficulty; if (difficulty) difficultiesSet.add(difficulty);
         if (q.sourceInfo?.examName) examNamesSet.add(q.sourceInfo.examName);
     }
 

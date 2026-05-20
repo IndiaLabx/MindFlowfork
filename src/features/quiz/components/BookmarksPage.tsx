@@ -60,14 +60,14 @@ export const BookmarksPage: React.FC = () => {
     const subjects = useMemo(() => {
         const subs = new Set<string>();
         bookmarks.forEach(q => {
-            if (q.classification.subject) subs.add(q.classification.subject);
+            if ((q.subject ?? q.classification?.subject)) subs.add((q.subject ?? q.classification?.subject));
         });
         return ['All', ...Array.from(subs)];
     }, [bookmarks]);
 
     const filteredBookmarks = useMemo(() => {
         if (selectedSubject === 'All') return bookmarks;
-        return bookmarks.filter(q => q.classification.subject === selectedSubject);
+        return bookmarks.filter(q => (q.subject ?? q.classification?.subject) === selectedSubject);
     }, [bookmarks, selectedSubject]);
 
     if (isError) {
@@ -184,15 +184,15 @@ export const BookmarksPage: React.FC = () => {
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                                 <span className="text-xs font-bold px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded uppercase tracking-wider">
-                                    {question.classification.subject || 'General'}
+                                    {(question.subject ?? question.classification?.subject) || 'General'}
                                 </span>
                                 <span className={cn(
                                     "text-xs font-bold px-2 py-1 rounded uppercase tracking-wider",
-                                    question.properties.difficulty === 'Easy' ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" :
-                                    question.properties.difficulty === 'Medium' ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400" :
+                                    (question.properties?.difficulty) === 'Easy' ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" :
+                                    (question.properties?.difficulty) === 'Medium' ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400" :
                                     "bg-rose-50 text-rose-700"
                                 )}>
-                                    {question.properties.difficulty}
+                                    {(question.properties?.difficulty)}
                                 </span>
                             </div>
 

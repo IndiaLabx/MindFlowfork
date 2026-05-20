@@ -121,11 +121,11 @@ export const QuizPdfPptGenerator: React.FC = () => {
   // 4. Final Filtered Metadata Calculation
   const filteredMetadata = useMemo(() => {
     return metadata.filter(q => {
-      if (filters.subject.length > 0 && !filters.subject.includes(q.classification.subject)) return false;
+      if (filters.subject.length > 0 && !filters.subject.includes(q.subject ?? q.classification?.subject)) return false;
       if (filters.topic.length > 0 && !filters.topic.includes(q.classification.topic)) return false;
       if (filters.subTopic.length > 0 && !filters.subTopic.includes(q.classification.subTopic || '')) return false;
-      if (filters.difficulty.length > 0 && !filters.difficulty.includes(q.properties.difficulty)) return false;
-      if (filters.questionType.length > 0 && !filters.questionType.includes(q.properties.questionType)) return false;
+      if (filters.difficulty.length > 0 && !filters.difficulty.includes(q.properties?.difficulty)) return false;
+      if (filters.questionType.length > 0 && !filters.questionType.includes(q.properties?.questionType)) return false;
       if (filters.examName.length > 0 && !filters.examName.includes(q.sourceInfo.examName)) return false;
       if (filters.examYear.length > 0 && !filters.examYear.includes(String(q.sourceInfo.examYear))) return false;
       if (filters.examDateShift.length > 0 && !filters.examDateShift.includes(q.sourceInfo.examDateShift || '')) return false;

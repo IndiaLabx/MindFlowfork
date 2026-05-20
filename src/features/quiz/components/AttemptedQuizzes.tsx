@@ -46,7 +46,7 @@ export const AttemptedQuizzes: React.FC = () => {
 
             if (!data || data.length === 0) return [];
 
-            const completedQuizzes = data.filter(rq => rq.state?.status === 'result');
+            const completedQuizzes = data.filter(rq => rq.status === 'result');
             const allQuestionIds = new Set<string>();
             completedQuizzes.forEach(rq => {
                 const bridgeData = rq.bridge_saved_quiz_questions || [];

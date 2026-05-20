@@ -89,6 +89,9 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                     }
 
                     const parsedState = typeof quizData.state === 'string' ? JSON.parse(quizData.state) : (quizData.state || {});
+                    if (quizData.status) {
+                        parsedState.status = quizData.status;
+                    }
 
                     // Load into Zustand Store explicitly merging ID
                     state.loadSavedQuiz({

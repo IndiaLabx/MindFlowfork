@@ -272,7 +272,7 @@ export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
           activeQuestions: uniqueQuestions,
           quizId: savedState.quizId,
           // Make absolutely sure 'status' maps into active view
-          status: savedState.status === 'result' ? 'result' : 'quiz'
+          status: savedState.status
       };
     }
     return savedState;

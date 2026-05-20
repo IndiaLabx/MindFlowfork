@@ -73,7 +73,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data, serialNumber, isFlipped 
 
           {/* Footer Tags */}
           <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{data.properties.difficulty}</span>
+            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{data.properties?.difficulty}</span>
             <span>#{serialNumber}</span>
             <span>{data.sourceInfo.pdfName} | {data.sourceInfo.examYear}</span>
           </div>

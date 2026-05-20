@@ -48,7 +48,7 @@ export const SavedQuizzes: React.FC = () => {
 
             if (!data || data.length === 0) return [];
 
-            const activeQuizzes = data.filter(rq => rq.state?.status !== 'result');
+            const activeQuizzes = data.filter(rq => rq.status !== 'result');
             const allQuestionIds = new Set<string>();
             activeQuizzes.forEach(rq => {
                 const bridgeData = rq.bridge_saved_quiz_questions || [];
@@ -144,7 +144,7 @@ export const SavedQuizzes: React.FC = () => {
 
 
         // Navigate based on completion status
-        if (quiz.state.status === 'result') {
+        if (quiz.state?.status === 'result') {
             navigate(`/result/${quiz.id}`);
         } else {
             // Navigate to the appropriate active session view
@@ -212,7 +212,7 @@ export const SavedQuizzes: React.FC = () => {
 
     /** Helper to determine if the quiz is finished. */
     const isQuizFinished = (quiz: SavedQuiz) => {
-        return quiz.state.status === 'result';
+        return quiz.state?.status === 'result';
     };
 
     /** Helper to determine if "Start" or "Resume" label should be shown. */

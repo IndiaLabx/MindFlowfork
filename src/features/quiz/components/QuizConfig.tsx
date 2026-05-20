@@ -135,9 +135,9 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
   // 4. Derived Lists for Dropdown Options
   const allSubjects = useMemo(() => Array.from(classificationMap.keys()).filter(Boolean).sort(), [classificationMap]);
-  const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.sourceInfo.examName))).filter(Boolean).sort(), [metadata]);
-  const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.sourceInfo.examYear)))).filter(Boolean).sort(), [metadata]);
-  const allExamShifts = useMemo(() => Array.from(new Set(metadata.map(q => q.sourceInfo.examDateShift || ''))).filter(Boolean).sort(), [metadata]);
+  const allExamNames = useMemo(() => Array.from(new Set(metadata.map(q => q.examName ?? q.sourceInfo?.examName))).filter(Boolean).sort(), [metadata]);
+  const allExamYears = useMemo(() => Array.from(new Set(metadata.map(q => String(q.examYear ?? q.sourceInfo?.examYear)))).filter(Boolean).sort(), [metadata]);
+  const allExamShifts = useMemo(() => Array.from(new Set(metadata.map(q => (q.examDateShift ?? q.sourceInfo?.examDateShift) || ''))).filter(Boolean).sort(), [metadata]);
   const allTags = useMemo(() => Array.from(new Set(metadata.flatMap(q => q.tags))).filter(Boolean).sort(), [metadata]);
 
   // 5. Final Filtered Metadata Calculation using O(1) Set Intersections
@@ -272,7 +272,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
     const subset = type === 'Mix'
       ? metadata
-      : metadata.filter(q => q.properties.difficulty === type);
+      : metadata.filter(q => (q.properties?.difficulty) === type);
 
     const shuffled = [...subset].sort(() => 0.5 - Math.random()).slice(0, 25);
 
