@@ -4,6 +4,9 @@ import { HashRouter } from 'react-router-dom';
 import { AppProvider } from './providers/AppProvider';
 import { AppRoutes } from './routes/AppRoutes';
 import { supabase } from './lib/supabase';
+import { injectDiagnostics } from './lib/diagnostics';
+
+injectDiagnostics();
 import { SynapticLoader } from './components/ui/SynapticLoader';
 
 /**

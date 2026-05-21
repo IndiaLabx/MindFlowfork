@@ -265,6 +265,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   /** Signs out the current user (Intentional Logout). */
   const signOut = async () => {
+    console.log("[Diagnostic] signOut START");
+    console.log("[Diagnostic] calling supabase.auth.signOut({ scope: 'global' })");
     const localSessionId = localStorage.getItem(SESSION_ID_KEY);
     localStorage.removeItem(SESSION_ID_KEY);
 
@@ -275,6 +277,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     await supabase.auth.signOut({ scope: 'global' });
+    console.log("[Diagnostic] supabase.auth.signOut RESOLVED");
 
     // Standard cleanup without hard reload
     await db.clearAllUserData();
@@ -297,6 +300,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     keysToRemove.forEach(key => localStorage.removeItem(key));
 
     window.dispatchEvent(new Event('mindflow-sync-complete'));
+    console.log("[Diagnostic] signOut END completely");
   };
 
 
