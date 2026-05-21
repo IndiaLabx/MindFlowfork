@@ -74,7 +74,7 @@ export const syncService = {
 
     if (error) {
       console.error('Error pushing saved quiz:', error);
-      return;
+      return false;
     }
 
     // Insert into junction table

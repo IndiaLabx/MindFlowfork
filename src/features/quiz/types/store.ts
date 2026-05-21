@@ -46,6 +46,7 @@ export interface QuizPersistentState {
   markedForReview: string[];
   hiddenOptions: Record<string, string[]>;
   isPaused?: boolean;
+  syncStatus?: SyncStatus;
   quizId?: string;
   status: QuizStatus;
   mode: QuizMode;
@@ -55,6 +56,8 @@ export interface QuizPersistentState {
  * The runtime state used in-memory by Zustand and the UI.
  * Extends persistent state with heavy data arrays and metadata.
  */
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'sync_failed' | 'offline_pending';
+
 export interface QuizRuntimeState extends QuizPersistentState {
   activeQuestions: Question[];
   filters?: InitialFilters;

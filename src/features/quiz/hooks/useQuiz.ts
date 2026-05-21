@@ -8,6 +8,7 @@ import { Question, InitialFilters, QuizMode, Idiom, OneWord, SynonymWord, QuizRu
 import { db } from '../../../lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../lib/supabase';
+import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
 import { syncService } from '../../../lib/syncService';
 
 /**
@@ -83,7 +84,7 @@ export const useQuiz = () => {
               headers.append("Content-Type", "application/json");
 
               if (isKeepAlive) {
-                  fetch(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`, {
+                  fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`, {
                       method: 'PATCH',
                       headers: headers,
                       body: JSON.stringify({ state: stateWithoutQuestions }),
@@ -91,7 +92,7 @@ export const useQuiz = () => {
                   }).catch(() => {});
               } else {
                   // Direct async fetch without keepalive for standard debounced calls
-                  await fetch(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`, {
+                  await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`, {
                       method: 'PATCH',
                       headers: headers,
                       body: JSON.stringify({ state: stateWithoutQuestions })

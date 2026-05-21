@@ -1,3 +1,4 @@
+import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { db } from '../../../lib/db';
 import { syncService } from '../../../lib/syncService';
 import { supabase } from '../../../lib/supabase';
@@ -7,7 +8,7 @@ import { QuizRuntimeState, QuizPersistentState, QuizStatus, QuizMode, Question, 
 
 interface QuizSessionState extends QuizRuntimeState {
   // Actions
-  enterHome: () => void;
+  enterHome: () => Promise<void>;
   enterConfig: () => void;
   enterBlueprints: () => void;
   enterEnglishHome: () => void;
@@ -35,7 +36,7 @@ interface QuizSessionState extends QuizRuntimeState {
   setFinalizeFailed: () => void;
   submitSessionResults: (results: { answers: Record<string, string>; timeTaken: Record<string, number>; score: number; bookmarks: string[] }) => void;
   restartQuiz: () => void;
-  goHome: () => void;
+  goHome: () => Promise<void>;
   loadSavedQuiz: (savedState: QuizRuntimeState) => void;
   reorderActiveQuestions: (newOrder: Question[]) => void;
   resetStore: () => void;
@@ -56,16 +57,28 @@ export const initialState: QuizRuntimeState = {
   activeQuestions: [],
   filters: undefined,
   isPaused: false,
+  syncStatus: 'idle',
 };
 
 
 
-const flushToCloud = async (state: QuizRuntimeState) => {
-  if (typeof window === 'undefined' || !navigator.onLine || !state.quizId) return;
-  if (state.status === 'finalizing' || state.status === 'result' || state.status === 'finalize_failed') return;
+const flushToCloud = async (state: QuizRuntimeState, set: any) => {
+  if (typeof window === 'undefined' || !state.quizId) return true;
+  if (state.status === 'finalizing' || state.status === 'result' || state.status === 'finalize_failed') return true;
+
+  if (!navigator.onLine) {
+     set({ syncStatus: 'offline_pending' });
+     useNotificationStore.getState().showToast({
+         variant: 'sync',
+         message: 'You are offline. Progress saved locally and will sync when reconnected.'
+     });
+     return true; // Local save is sufficient for offline
+  }
+
+  set({ syncStatus: 'syncing' });
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) return false;
 
     // Save locally first
     const stateToSave = { ...state };
@@ -79,10 +92,21 @@ const flushToCloud = async (state: QuizRuntimeState) => {
     // Push full quiz object
     const quiz = await db.getQuiz(state.quizId);
     if (quiz) {
-      await syncService.pushSavedQuiz(session.user.id, quiz);
+      const syncResult = await syncService.pushSavedQuiz(session.user.id, quiz);
+      if (syncResult === false) { // Assuming we update syncService to return success state
+         throw new Error("Sync service rejected the push.");
+      }
     }
+    set({ syncStatus: 'synced' });
+    return true;
   } catch (err) {
     console.error("Failed explicit flush to cloud:", err);
+    set({ syncStatus: 'sync_failed' });
+    useNotificationStore.getState().showToast({
+       variant: 'error',
+       message: 'Background sync failed. Please check your connection.'
+    });
+    return false;
   }
 };
 
@@ -90,7 +114,7 @@ export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
   ...initialState,
   resetStore: () => set(initialState),
 
-  enterHome: () => { flushToCloud(get()); set({ ...initialState, status: 'idle' }); },
+  enterHome: async () => { const success = await flushToCloud(get(), set); if(success) { set({ ...initialState, status: 'idle' }); } },
   enterConfig: () => set({ status: 'config' }),
   enterBlueprints: () => set({ status: 'blueprints' as any }),
   enterEnglishHome: () => set({ status: 'english-home' }),
@@ -245,7 +269,7 @@ export const useQuizSessionStore = create<QuizSessionState>((set, get) => ({
     };
   }),
 
-  goHome: () => { flushToCloud(get()); set({ ...initialState, status: 'idle' }); },
+  goHome: async () => { const success = await flushToCloud(get(), set); if(success) { set({ ...initialState, status: 'idle' }); } },
 
   reorderActiveQuestions: (newOrder) => set((state) => {
     const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
