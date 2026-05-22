@@ -37,7 +37,7 @@ export const injectDiagnostics = () => {
 
         console.log("3. Testing Plain Native Fetch to Supabase health check...");
         try {
-            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+            const res = await window.fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
                 headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY }
             });
             console.log("   -> Native fetch RESULT:", res.status, res.statusText);
@@ -45,9 +45,9 @@ export const injectDiagnostics = () => {
             console.error("   -> Native fetch FAILED:", e.message);
         }
 
-        console.log("3b. Testing SW-Bypassed Native Fetch...");
+        console.log("3b. Testing SW-Bypassed Native Fetch (cache: reload)...");
         try {
-            const resBypass = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+            const resBypass = await window.fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
                 headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
                 cache: 'reload' // Often bypasses SW
             });

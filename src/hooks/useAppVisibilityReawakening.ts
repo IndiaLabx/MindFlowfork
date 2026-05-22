@@ -33,6 +33,14 @@ export function useAppVisibilityReawakening() {
     // Web / PWA listener
     const handleVisibilityChange = () => {
       console.log(`[Diagnostic] visibilitychange event fired. visibilityState: ${document.visibilityState}`);
+      if ('serviceWorker' in navigator) {
+          console.log(`[Diagnostic-SW] visibilitychange SW Controller:`, navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : 'NULL');
+          navigator.serviceWorker.getRegistration().then(reg => {
+              if (reg) {
+                  console.log(`[Diagnostic-SW] visibilitychange SW Active:`, reg.active ? reg.active.scriptURL : 'NULL');
+              }
+          });
+      }
       if (document.visibilityState === 'visible') {
         handleReawaken();
       }
