@@ -2,23 +2,12 @@ import React from 'react';
 import { AuthProvider } from '../features/auth/context/AuthContext';
 import { ToastContainer } from '../components/ui/Notification/ToastContainer';
 import { Popup } from '../components/ui/Notification/Popup';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 
 interface AppProviderProps {
   children: React.ReactNode;
 }
 
-/**
- * Global application provider component.
- *
- * This component acts as a wrapper for all global context providers in the application.
- * It ensures that the context hierarchy is structured correctly (e.g., AuthProvider).
- * Centralizing providers here cleans up the main entry point (App.tsx or index.tsx).
- *
- * @param {AppProviderProps} props - The component properties.
- * @param {React.ReactNode} props.children - The child components (the rest of the app).
- * @returns {JSX.Element} The composed provider tree.
- */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -27,6 +16,36 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// --- DIAGNOSTIC INSTRUMENTATION ---
+queryClient.getQueryCache().subscribe((event) => {
+    if (event.type === 'updated' && event.action.type === 'fetch') {
+        console.log(`[Diagnostic-RQ] Query fetching started: ${event.query.queryHash}`);
+    }
+    if (event.type === 'updated' && event.action.type === 'pause') {
+        console.log(`[Diagnostic-RQ] Query PAUSED: ${event.query.queryHash}`);
+    }
+    if (event.type === 'updated' && event.action.type === 'error') {
+        console.log(`[Diagnostic-RQ] Query ERROR: ${event.query.queryHash}`);
+    }
+});
+
+queryClient.getMutationCache().subscribe((event) => {
+    if (event.type === 'updated' && event.action?.type === 'pending') {
+        console.log(`[Diagnostic-RQ] Mutation pending:`, event.mutation.options.mutationKey);
+    }
+    if (event.type === 'updated' && event.action?.type === 'pause') {
+        console.log(`[Diagnostic-RQ] Mutation PAUSED:`, event.mutation.options.mutationKey);
+    }
+});
+
+onlineManager.subscribe((isOnline) => {
+    console.log(`[Diagnostic-RQ] onlineManager status changed. isOnline: ${isOnline}`);
+});
+
+// Attach queryClient to window for diagnostics
+(window as any).__queryClient = queryClient;
+// -----------------------------------
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   return (

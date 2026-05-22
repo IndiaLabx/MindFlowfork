@@ -5,6 +5,10 @@ import { AppProvider } from './providers/AppProvider';
 import { AppRoutes } from './routes/AppRoutes';
 import { supabase } from './lib/supabase';
 import { injectDiagnostics } from './lib/diagnostics';
+import { initSWDiagnostics } from './lib/sw-diagnostics';
+
+injectDiagnostics();
+initSWDiagnostics();
 
 injectDiagnostics();
 import { SynapticLoader } from './components/ui/SynapticLoader';
