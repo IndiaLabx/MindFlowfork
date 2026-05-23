@@ -42,11 +42,11 @@ export const LiveQuizRoom: React.FC = () => {
                     setQuiz(foundQuiz);
                 } else {
                     console.error("Quiz not found");
-                    navigate('/quiz/saved');
+                    navigate('/quiz/library?tab=created');
                 }
             } catch (error) {
                 console.error("Failed to load quiz:", error);
-                navigate('/quiz/saved');
+                navigate('/quiz/library?tab=created');
             } finally {
                 setLoading(false);
             }
@@ -125,7 +125,7 @@ export const LiveQuizRoom: React.FC = () => {
                 <button
                     onClick={() => {
                         disconnect();
-                        navigate('/quiz/saved');
+                        navigate('/quiz/library?tab=created');
                     }}
                     className="p-3 bg-stone-900/50 hover:bg-stone-800 text-stone-300 rounded-full transition-colors backdrop-blur-md border border-stone-800"
                 >

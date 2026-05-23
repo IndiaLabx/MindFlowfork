@@ -29,8 +29,8 @@ const Dashboard = lazy(() => import('../features/quiz/components/Dashboard').the
 const McqsQuizHome = lazy(() => import('../features/quiz/components/McqsQuizHome').then(m => ({ default: m.McqsQuizHome })));
 const EnglishQuizHome = lazy(() => import('../features/quiz/components/EnglishQuizHome').then(m => ({ default: m.EnglishQuizHome })));
 const QuizConfig = lazy(() => import('../features/quiz/components/QuizConfig').then(m => ({ default: m.QuizConfig })));
-const SavedQuizzes = lazy(() => import('../features/quiz/components/SavedQuizzes').then(m => ({ default: m.SavedQuizzes })));
-const AttemptedQuizzes = lazy(() => import('../features/quiz/components/AttemptedQuizzes').then(m => ({ default: m.AttemptedQuizzes })));
+const QuizLibrary = lazy(() => import('../features/quiz/components/QuizLibrary').then(m => ({ default: m.QuizLibrary })));
+
 const PerformanceAnalytics = lazy(() => import('../features/quiz/components/PerformanceAnalytics').then(m => ({ default: m.PerformanceAnalytics })));
 const BookmarksPage = lazy(() => import('../features/quiz/components/BookmarksPage').then(m => ({ default: m.BookmarksPage })));
 const IdiomsConfig = lazy(() => import('../features/idioms/IdiomsConfig').then(m => ({ default: m.IdiomsConfig })));
@@ -233,8 +233,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/english" element={<Suspense fallback={<SynapticLoader />}><EnglishQuizHome onBack={() => { enterHome(); navTo('/dashboard'); }} onIdiomsClick={() => { enterIdiomsConfig(); navTo('/idioms/config'); }} onOWSClick={() => { enterOWSConfig(); navTo('/ows/config'); }} onSynonymsClick={() => { enterSynonymsConfig(); navTo('/synonyms/config'); }} /></Suspense>} />
 
                     <Route path="/share/:originalQuizId" element={<ShareGatekeeper />} />
-                <Route path="/quiz/saved" element={<Suspense fallback={<SynapticLoader />}><SavedQuizzes /></Suspense>} />
-                    <Route path="/quiz/attempted" element={<Suspense fallback={<SynapticLoader />}><AttemptedQuizzes /></Suspense>} />
+                <Route path="/quiz/library" element={<Suspense fallback={<SynapticLoader />}><QuizLibrary /></Suspense>} />
+                <Route path="/quiz/saved" element={<Navigate to="/quiz/library?tab=created" replace />} />
+                <Route path="/quiz/attempted" element={<Navigate to="/quiz/library?tab=attempted" replace />} />
                     <Route path="/quiz/analytics" element={<Suspense fallback={<SynapticLoader />}><PerformanceAnalytics /></Suspense>} />
                     <Route path="/quiz/bookmarks" element={<Suspense fallback={<SynapticLoader />}><BookmarksPage /></Suspense>} />
 
@@ -461,7 +462,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             onPause={(timeLeft) => {
                                 syncGlobalTimer(timeLeft);
                                 pauseQuiz();
-                                setTimeout(() => navTo('/quiz/saved'), 100);
+                                setTimeout(() => navTo('/quiz/library?tab=created'), 100);
                             }}
                             onComplete={async (results: any) => await handleQuizComplete(results, state.quizId!)}
                         />

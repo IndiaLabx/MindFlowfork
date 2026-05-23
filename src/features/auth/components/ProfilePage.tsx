@@ -307,7 +307,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           </div>
 
           {/* --- Performance Stats --- */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer" onClick={() => navigate('/quiz/attempted')}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer" onClick={() => navigate('/quiz/library?tab=attempted')}>
             <div className="flex items-center justify-between mb-4">
                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                    <BarChart className="w-5 h-5 text-indigo-500" />
@@ -377,7 +377,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm p-4 transition-colors duration-300">
               <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-3 px-2">My Activity</h2>
               <div className="space-y-2">
-                  <button onClick={() => navigate('/quiz/attempted')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button onClick={() => navigate('/quiz/library?tab=attempted')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400"><FileText className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Attempted Tests</span>
@@ -391,7 +391,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
-                  <button onClick={() => navigate('/quiz/saved')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <button onClick={() => navigate('/quiz/library?tab=created')} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-blue-500 dark:text-blue-400"><Grid className="w-4 h-4" /></div>
                           <span className="font-bold text-slate-700 dark:text-slate-300">Created Quizzes</span>

@@ -145,7 +145,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({
       
       {/* Header Actions */}
       <div className="flex justify-between items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate('/quiz/attempted')} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white pl-0">
+          <Button variant="ghost" onClick={() => navigate('/quiz/library?tab=attempted')} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white pl-0">
               <ChevronLeft className="w-5 h-5 mr-1" /> Back to Quizzes
           </Button>
           <div className="flex gap-3">

@@ -245,7 +245,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       }
 
       // navigate to Saved route to fetch newly created quiz directly from the cloud
-      navigate('/quiz/saved');
+      navigate('/quiz/library?tab=created');
 
     } catch (err) {
       console.error("Failed to create quiz:", err);
