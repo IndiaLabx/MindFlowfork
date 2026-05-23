@@ -257,7 +257,7 @@ export const SavedQuizzes: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
+        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-2 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden">
 
             {/* --- "Aurora" Atmosphere (Background) --- */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -275,44 +275,45 @@ export const SavedQuizzes: React.FC = () => {
                 </div>
             </div>
 
-            <div className="w-full max-w-7xl mx-auto relative z-10 animate-fade-in py-4 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-6">
+            <div className="w-full max-w-7xl mx-auto relative z-10 animate-fade-in py-2 sm:py-4 space-y-3 sm:space-y-6">
                 {/* Header Title & Back Button */}
-                <div className="flex flex-col gap-2">
-                    <button
-                        onClick={() => navigate('/mcqs')}
-                        className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
-                        title="Back to MCQs"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                    <h1 className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white leading-tight drop-shadow-sm">
-                        Created Quizzes
-                    </h1>
-                </div>
+                <div className="flex flex-col gap-3 sm:gap-6 mb-2 sm:mb-6">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <button
+                            onClick={() => navigate('/mcqs')}
+                            className="z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+                            title="Back to MCQs"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight drop-shadow-sm">
+                            Created Quizzes
+                        </h1>
+                    </div>
 
-                {/* Top Action Button */}
-                <div className="flex shrink-0">
-                    <button
-                        onClick={() => navigate('/quiz/attempted')}
-                        className="relative group overflow-hidden px-5 py-3 rounded-2xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 h-[3px] w-full bg-gradient-to-r from-emerald-400 to-emerald-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-
-                        <motion.div whileHover={{ scale: 1.2, rotate: 15 }} transition={{ type: "spring", stiffness: 300 }}><CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /></motion.div>
-                        <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-emerald-900 dark:from-emerald-300 dark:to-emerald-100">
-                            View Attempted
-                        </span>
-                    </button>
+                    {/* Tabs Navigation */}
+                    <div className="flex p-1 bg-indigo-50/50 dark:bg-slate-800/50 rounded-xl border border-indigo-100/50 dark:border-slate-700/50 backdrop-blur-sm shadow-sm w-full sm:w-fit self-start">
+                        <button
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg bg-white dark:bg-slate-700 shadow-sm border border-indigo-100 dark:border-slate-600 font-bold text-indigo-700 dark:text-indigo-300 transition-all text-sm sm:text-base"
+                        >
+                            <BookOpen className="w-4 h-4" />
+                            Created
+                        </button>
+                        <button
+                            onClick={() => navigate('/quiz/attempted')}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all text-sm sm:text-base"
+                        >
+                            <CheckCircle className="w-4 h-4" />
+                            Attempted
+                        </button>
+                    </div>
                 </div>
-            </div>
 
                 {sortedQuizzes.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="relative group p-[1px] rounded-3xl overflow-hidden max-w-lg mx-auto mt-12"
+                        className="relative group p-[1px] rounded-3xl overflow-hidden max-w-lg mx-auto mt-6 sm:mt-12"
                     >
                         {/* Glow Background Layer */}
                         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl transition-colors duration-300 z-0" />
@@ -324,16 +325,16 @@ export const SavedQuizzes: React.FC = () => {
                         {/* Centered Subtle Glow */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] rounded-full blur-[80px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-indigo-500/20" />
 
-                        <div className="relative z-20 text-center py-16 px-6">
-                            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center border border-indigo-100 dark:border-indigo-800/50 shadow-inner">
-                                <BookOpen className="w-10 h-10 text-indigo-400 dark:text-indigo-500 drop-shadow-sm" />
+                        <div className="relative z-20 text-center py-8 px-4 sm:py-16 sm:px-6">
+                            <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center border border-indigo-100 dark:border-indigo-800/50 shadow-inner">
+                                <BookOpen className="w-7 h-7 sm:w-10 sm:h-10 text-indigo-400 dark:text-indigo-500 drop-shadow-sm" />
                             </div>
 
-                            <h3 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 mb-3 drop-shadow-sm">
+                            <h3 className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 mb-2 sm:mb-3 drop-shadow-sm">
                                 No Created Quizzes
                             </h3>
 
-                            <p className="text-slate-500 dark:text-slate-400 font-medium mb-8 max-w-sm mx-auto">
+                            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mb-6 sm:mb-8 max-w-sm mx-auto">
                                 You haven't started any quizzes yet. Create a new one to begin your learning journey!
                             </p>
 
@@ -358,18 +359,18 @@ export const SavedQuizzes: React.FC = () => {
                         className="flex flex-col gap-6"
                     >
                         {/* Top Info Bar */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-indigo-50/50 dark:bg-slate-800/50 border border-indigo-100/50 dark:border-slate-700/50 backdrop-blur-sm z-20 shadow-sm">
-                            <div className="flex items-center gap-2">
-                                <span className="text-slate-600 dark:text-slate-300 font-medium">Total Quizzes:</span>
-                                <span className="px-2.5 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-sm">
+                        <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 p-2 sm:p-4 rounded-2xl bg-indigo-50/50 dark:bg-slate-800/50 border border-indigo-100/50 dark:border-slate-700/50 backdrop-blur-sm z-20 shadow-sm">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <span className="text-slate-600 dark:text-slate-300 font-medium text-xs sm:text-base">Total:</span>
+                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs sm:text-sm">
                                     {sortedQuizzes.length}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
                                 <select
                                     value={sortMethod}
                                     onChange={(e) => setSortMethod(e.target.value as any)}
-                                    className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm"
+                                    className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm"
                                 >
                                     <option value="date-desc">Date (Newest)</option>
                                     <option value="date-asc">Date (Oldest)</option>
