@@ -10,6 +10,7 @@ import { useSyncStore } from '../stores/useSyncStore';
 import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
+import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
@@ -312,6 +313,15 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
                         animate="visible"
                         className="flex flex-col gap-6"
                     >
+                        <QuizLibraryToolbar
+                            count={sortedQuizzes.length}
+                            label="Created"
+                            viewMode={viewMode}
+                            setViewMode={setViewMode}
+                            sortMethod={sortMethod}
+                            setSortMethod={setSortMethod}
+                            showScoreSort={false}
+                        />
                         <div className={`grid gap-4 sm:gap-6 z-20 ${viewMode === 'list' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
                         {sortedQuizzes.map((quiz, index) => (
                             <SavedQuizCard
