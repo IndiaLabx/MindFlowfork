@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAnalyticsStore } from '../stores/useAnalyticsStore';
 import { useBookmarkStore } from '../stores/useBookmarkStore';
 import { quizEngine } from '../engine';
-import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X, Pause, Play, Percent } from 'lucide-react';
+import { ArrowRight, Star, Settings, Menu, ZoomIn, ZoomOut, Maximize2, Minimize2, Clock, ChevronLeft, Home, AlertCircle, X, Pause, Play, Percent, ChevronDown, ChevronUp } from 'lucide-react';
 import { Question, InitialFilters } from '../types';
 import { QuizQuestionDisplay } from '../components/QuizQuestionDisplay';
 import { QuizExplanation } from '../components/QuizExplanation';
@@ -26,6 +26,7 @@ interface LearningSessionProps {
     filters: InitialFilters;
     remainingTimes: Record<string, number>;
     isPaused: boolean;
+    quizName?: string;
 
     // State from Parent
     currentIndex: number;
@@ -54,6 +55,7 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     filters,
     remainingTimes,
     isPaused,
+    quizName,
     currentIndex,
     answers,
     bookmarks,
@@ -78,6 +80,8 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const reorderActiveQuestions = useQuizSessionStore(s => s.reorderActiveQuestions);
+    const isToolbarExpanded = useQuizSessionStore(s => s.isToolbarExpanded);
+    const toggleToolbar = useQuizSessionStore(s => s.toggleToolbar);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -258,127 +262,166 @@ export const LearningSession: React.FC<LearningSessionProps> = ({
     // --- RENDER ---
 
     const header = (
-        <div className="flex items-center justify-between p-3 sm:p-4 w-full bg-white dark:bg-gray-800 relative z-20">
-            <div className="flex-1 flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                    {/* Desktop Breadcrumbs */}
-                    <div className="hidden sm:block"><QuizBreadcrumbs filters={filters} onGoHome={onGoHome} /></div>
-
-                    {/* Mobile Home Button */}
-                    <div className="sm:hidden">
-                        <Button variant="ghost" size="sm" onClick={onGoHome} className="p-0 text-gray-500 dark:text-gray-400 hover:bg-transparent">
-                            <Home className="w-5 h-5" />
-                        </Button>
-                    </div>
-
-                    {/* Tools Group */}
-                    <div className="flex items-center gap-2 ml-auto sm:ml-0 overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto">
-
-                        {/* Timer Badge */}
-                        <Badge
-                            variant="neutral"
-                            icon={<Clock className="w-3.5 h-3.5" />}
-                            className={cn(
-                                "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
-                                timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50 dark:bg-gray-900"
-                            )}
-                        >
-                            {formatTime(timeLeft)}
-                        </Badge>
-
-                        {/* 50:50 Lifeline Button */}
-                        <button
-                            onClick={handleFiftyFifty}
-                            disabled={isAnswered || isFiftyFiftyUsed}
-                            className={cn(
-                                "p-1.5 rounded-lg border transition-colors shrink-0",
-                                isFiftyFiftyUsed
-                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed"
-                                    : "bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100"
-                            )}
-                            title="50:50 Lifeline"
-                         aria-label="Use fifty-fifty lifeline">
-                            <Percent className="w-4 h-4" />
-                        </button>
-
-                        {/* Pause Button */}
-                        <button
-                            onClick={handlePause}
-                            className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 shrink-0"
-                            title="Pause Quiz"
-                            data-testid="pause-button"
-                         aria-label="Pause">
-                            <Pause className="w-4 h-4" />
-                        </button>
-
-                        {/* Zoom Controls */}
-                        <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
-                            <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomOut className="w-4 h-4" /></button>
-                            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
-                            <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
-                        </div>
-
-                        {/* Fullscreen Toggle */}
-                        <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex shrink-0" aria-label="Toggle fullscreen">
-                            {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                        </button>
-                    </div>
+        <div className="w-full relative z-20 flex flex-col">
+            {/* Primary Quiz Title Bar */}
+            <div className="flex items-center justify-between px-3 sm:px-4 py-3 bg-indigo-600 dark:bg-indigo-900 text-white w-full pt-[max(0.75rem,env(safe-area-inset-top))]">
+                <div className="flex items-center gap-3 overflow-hidden flex-1">
+                    <button
+                        onClick={onGoHome}
+                        className="p-1.5 hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-lg transition-colors shrink-0"
+                        title="Go Home"
+                    >
+                        <Home className="w-5 h-5 text-white" />
+                    </button>
+                    <h1 className="font-semibold text-white truncate pr-2 text-base md:text-lg">
+                        {quizName || 'Learning Session'}
+                    </h1>
                 </div>
 
-                {/* Progress Bar Row */}
-                <div className="flex items-center gap-3">
-                    <button onClick={() => setIsNavOpen(true)} className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                        <Menu className="w-5 h-5" />
+                <div className="flex items-center gap-1 shrink-0">
+                    <button
+                        onClick={toggleToolbar}
+                        className="p-1.5 hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-lg transition-colors"
+                        title={isToolbarExpanded ? 'Collapse Tools' : 'Expand Tools'}
+                    >
+                        {isToolbarExpanded ? <ChevronUp className="w-5 h-5 text-white" /> : <ChevronDown className="w-5 h-5 text-white" />}
                     </button>
-
-                    <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                            className={cn(
-                                "h-full transition-all duration-1000 ease-linear",
-                                timeLeft <= 5 ? "bg-red-600 animate-pulse" :
-                                    timeLeft <= 10 ? "bg-red-500" :
-                                        "bg-indigo-600"
-                            )}
-                            style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
-                        />
-                    </div>
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
+                    <button
+                        onClick={handlePause}
+                        className="p-1.5 hover:bg-indigo-700 dark:hover:bg-indigo-800 rounded-lg transition-colors ml-1"
+                        title="Pause Quiz"
+                        data-testid="pause-button"
+                    >
+                        <Pause className="w-5 h-5 fill-current text-white" />
+                    </button>
                 </div>
             </div>
 
-            {/* Right Actions */}
-            <div className="flex flex-col items-center gap-2 pl-3 border-l border-gray-100 dark:border-gray-800 ml-3 shrink-0">
-                <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-2 rounded-full transition-colors", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 text-amber-500" : "bg-gray-50 dark:bg-gray-900 text-gray-400 hover:bg-gray-100 dark:bg-gray-800")}>
-                    <Star className={cn("w-5 h-5", bookmarks.includes(currentQuestion.id) && "fill-current")} />
-                </button>
-                <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors">
-                    <Settings className="w-5 h-5" />
-                </button>
+            {/* Secondary Utility Row (Collapsible) */}
+            <div className={cn(
+                "w-full bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out origin-top border-b border-gray-100 dark:border-gray-800",
+                isToolbarExpanded ? "max-h-24 opacity-100 p-3 sm:p-4" : "max-h-0 opacity-0 overflow-hidden py-0 border-transparent"
+            )}>
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex-1 flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                            {/* Desktop Breadcrumbs (if filters exist, or just placeholder to keep layout) */}
+                            <div className="hidden sm:block">
+                                {filters && (filters.subject?.length > 0 || filters.examName) ? <QuizBreadcrumbs filters={filters} onGoHome={onGoHome} /> : <div />}
+                            </div>
+
+                            {/* Tools Group */}
+                            <div className="flex items-center gap-2 ml-auto sm:ml-0 overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto">
+                                {/* Timer Badge */}
+                                <Badge
+                                    variant="neutral"
+                                    icon={<Clock className="w-3.5 h-3.5" />}
+                                    className={cn(
+                                        "font-mono font-bold tabular-nums min-w-[4rem] justify-center transition-colors shrink-0",
+                                        timeLeft <= 10 ? "bg-red-50 text-red-600 border-red-200 animate-pulse" : "bg-gray-50 dark:bg-gray-900"
+                                    )}
+                                >
+                                    {formatTime(timeLeft)}
+                                </Badge>
+
+                                {/* Zoom Controls */}
+                                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
+                                    <button onClick={() => setZoomLevel(z => Math.max(0.8, z - 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomOut className="w-4 h-4" /></button>
+                                    <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+                                    <button onClick={() => setZoomLevel(z => Math.min(1.6, z + 0.1))} className="p-1.5 hover:bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 active:bg-gray-300"><ZoomIn className="w-4 h-4" /></button>
+                                </div>
+
+                                {/* Fullscreen Toggle */}
+                                <button onClick={toggleFullScreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 flex shrink-0" aria-label="Toggle fullscreen">
+                                    {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                                </button>
+
+                                {/* Bookmark */}
+                                <button onClick={() => onToggleBookmark(currentQuestion.id)} className={cn("p-1.5 rounded-lg border transition-colors shrink-0 ml-1", bookmarks.includes(currentQuestion.id) ? "bg-amber-100 border-amber-200 text-amber-500" : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400 hover:bg-gray-100 dark:bg-gray-800")}>
+                                    <Star className={cn("w-4 h-4", bookmarks.includes(currentQuestion.id) && "fill-current")} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar Row */}
+                        <div className="flex items-center gap-3">
+                            {/* We moved the Menu to the bottom bar, so we just have progress bar here now */}
+                            <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div
+                                    className={cn(
+                                        "h-full transition-all duration-1000 ease-linear",
+                                        timeLeft <= 5 ? "bg-red-600 animate-pulse" :
+                                            timeLeft <= 10 ? "bg-red-500" :
+                                                "bg-indigo-600"
+                                    )}
+                                    style={{ width: `${(timeLeft / APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT) * 100}%` }}
+                                />
+                            </div>
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 min-w-[3rem] text-right">{currentIndex + 1} / {questions.length}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 
     const footer = (
-        <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center gap-4">
-            <Button
-                variant="ghost"
-                onClick={handlePrevClick}
-                disabled={currentIndex === 0}
-                className="text-gray-500 dark:text-gray-400 hover:text-indigo-600"
-            >
-                <ChevronLeft className="w-4 h-4 mr-2" /> Previous
-            </Button>
+        <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 w-full">
+            {/* Top row of footer (Settings & Nav Menu) */}
+            <div className="flex justify-between items-center mb-3">
+                <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                    title="Settings"
+                >
+                    <Settings className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => setIsNavOpen(true)}
+                    className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 flex items-center justify-center min-w-[3rem]"
+                    title="Side Panel"
+                >
+                    <Menu className="w-6 h-5" strokeWidth={2.5} />
+                </button>
+            </div>
 
-            <Button
-                onClick={handleNextClick}
-                disabled={!isAnswered}
-                className={cn(
-                    "px-8 transition-all shadow-lg",
-                    !isAnswered ? "opacity-50 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
-                )}
-            >
-                {currentIndex === questions.length - 1 ? "Finish Quiz" : "Next Question"} <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            {/* Bottom Actions Row */}
+            <div className="flex justify-between items-center gap-3">
+                <button
+                    onClick={handlePrevClick}
+                    disabled={currentIndex === 0}
+                    className="p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                    title="Previous Question"
+                >
+                    <ChevronLeft className="w-6 h-6" />
+                </button>
+
+                {/* 50:50 Lifeline Button (Pill) */}
+                <button
+                    onClick={handleFiftyFifty}
+                    disabled={isAnswered || isFiftyFiftyUsed}
+                    className={cn(
+                        "flex-1 max-w-[8rem] py-2.5 px-4 rounded-full font-bold text-sm text-center transition-all shadow-sm flex items-center justify-center",
+                        isFiftyFiftyUsed
+                            ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
+                            : "bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-yellow-200/50"
+                    )}
+                    title="50:50 Lifeline"
+                >
+                    50:50
+                </button>
+
+                <Button
+                    onClick={handleNextClick}
+                    disabled={!isAnswered}
+                    className={cn(
+                        "flex-1 max-w-[12rem] py-6 rounded-xl transition-all shadow-lg text-base font-bold",
+                        !isAnswered ? "opacity-50 cursor-not-allowed bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 dark:shadow-indigo-900/20"
+                    )}
+                >
+                    {currentIndex === questions.length - 1 ? "Finish" : "Next"} <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+            </div>
         </div>
     );
 

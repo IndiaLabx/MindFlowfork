@@ -144,14 +144,14 @@ export const useQuiz = () => {
 
 
   // Wrap startQuiz to include analytics
-  const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning', quizId?: string) => {
+  const startQuiz = useCallback((filteredQuestions: Question[], filters: InitialFilters, mode: QuizMode = 'learning', quizId?: string, quizName?: string) => {
     logEvent('quiz_started', {
       subject: filters.subject,
       difficulty: filters.difficulty,
       question_count: filteredQuestions.length,
       mode: mode
     });
-    state.startQuiz(filteredQuestions, filters, mode, quizId);
+    state.startQuiz(filteredQuestions, filters, mode, quizId, quizName);
   }, [state.startQuiz]);
 
   // Wrap submitSessionResults to include complex logic previously in useQuiz

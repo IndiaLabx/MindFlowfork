@@ -23,6 +23,7 @@ export const initialState: QuizRuntimeState = {
 
   filters: undefined,
   isPaused: false,
+  isToolbarExpanded: true,
 };
 
 /**

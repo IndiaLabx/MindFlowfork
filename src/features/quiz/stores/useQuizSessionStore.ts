@@ -7,6 +7,7 @@ import { APP_CONFIG } from '../../../constants/config';
 import { QuizRuntimeState, QuizPersistentState, QuizStatus, QuizMode, Question, InitialFilters } from '../types';
 
 interface QuizSessionState extends QuizRuntimeState {
+  toggleToolbar: () => void;
   // Actions
   enterHome: () => Promise<void>;
   enterConfig: () => void;
@@ -18,7 +19,7 @@ interface QuizSessionState extends QuizRuntimeState {
   enterProfile: () => void;
   enterLogin: () => void;
   goToIntro: () => void;
-  startQuiz: (questions: Question[], filters: InitialFilters, mode: QuizMode, quizId?: string) => void;
+  startQuiz: (questions: Question[], filters: InitialFilters, mode: QuizMode, quizId?: string, quizName?: string) => void;
   answerQuestion: (questionId: string, answer: string, timeTaken: number) => void;
   logTimeSpent: (questionId: string, timeTaken: number) => void;
   saveTimer: (questionId: string, time: number) => void;
@@ -57,6 +58,7 @@ export const initialState: QuizRuntimeState = {
   activeQuestions: [],
   filters: undefined,
   isPaused: false,
+  isToolbarExpanded: true,
   syncStatus: 'idle',
 };
 
@@ -155,9 +157,11 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
   enterOWSConfig: () => set({ status: 'ows-config' }),
   enterProfile: () => set({ status: 'profile' }),
   enterLogin: () => set({ status: 'login' }),
+  toggleToolbar: () => set((state) => ({ isToolbarExpanded: !state.isToolbarExpanded })),
+  setQuizName: (name: string) => set({ quizName: name }),
   goToIntro: () => set({ ...initialState, status: 'intro' }),
 
-  startQuiz: (questions, filters, mode, quizId) => {
+  startQuiz: (questions, filters, mode, quizId, quizName) => {
     const globalTime = (mode === 'mock' || mode === 'god')
       ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, questions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
       : 0;
@@ -171,6 +175,7 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
   activeQuestions: questions,
   filters: filters,
   quizId: resolvedQuizId,
+  quizName: quizName,
   quizTimeRemaining: globalTime,
   remainingTimes: mode === 'learning'
     ? questions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})

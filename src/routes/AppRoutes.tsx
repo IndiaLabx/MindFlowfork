@@ -414,9 +414,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
                     <Route path="/quiz/config" element={
                         <Suspense fallback={<SynapticLoader />}><QuizConfig
                             onBack={() => { navTo('/mcqs'); }}
-                            onStart={(questions, filters, mode) => {
+                            onStart={(questions, filters, mode, quizName) => {
                                 // Note: QuizConfig uses saveQuiz directly and navigates, so this might not be hit, but we pass random UUID just in case
-                                startQuiz(questions, filters || ({} as any), mode, crypto.randomUUID());
+                                startQuiz(questions, filters || ({} as any), mode, crypto.randomUUID(), quizName);
                                 navTo(`/quiz/session/${mode}/${state.quizId}`);
                             }}
                         /></Suspense>

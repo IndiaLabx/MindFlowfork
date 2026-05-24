@@ -127,6 +127,7 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                         ...finalStateToLoad,
                         activeQuestions: fullQuestions,
                         quizId: quizId,
+                        quizName: quizData.name,
                         isPaused: false
                     });
                 } else {

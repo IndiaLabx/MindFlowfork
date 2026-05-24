@@ -44,7 +44,7 @@ import { supabase } from '../../../lib/supabase';
 import { syncService } from '../../../lib/syncService';
 
 interface QuizConfigProps {
-  onStart: (questions: Question[], filters?: InitialFilters, mode?: QuizMode) => void;
+  onStart: (questions: Question[], filters?: InitialFilters, mode?: QuizMode, quizName?: string) => void;
   onBack: () => void;
 }
 
