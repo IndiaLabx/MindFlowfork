@@ -369,7 +369,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
       </div>
 
       {/* Footer Strip / Feature Ticker */}
-      <div className="w-full border-t border-white/50 dark:border-slate-800/50 bg-white dark:bg-gray-800 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="w-full border-t border-white/50 dark:border-slate-800/50 bg-white dark:bg-gray-800 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem_+_env(safe-area-inset-bottom))]">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 dark:text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Zap className="w-4 h-4" /> Instant Evaluation</div>
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>

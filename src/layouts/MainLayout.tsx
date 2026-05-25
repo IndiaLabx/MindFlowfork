@@ -261,7 +261,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
       <nav className={cn(
         "main-layout-nav",
-        "fixed bottom-0 left-0 w-full z-[10000] transition-colors duration-300 pb-[env(safe-area-inset-bottom)] group overflow-visible",
+        "fixed bottom-0 left-0 w-full z-[10000] transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pt-2 group overflow-visible",
         isReviewMode || isAIFullScreen ? "hidden" : "block"
       )}>
         {/* Glow Background Layer */}
