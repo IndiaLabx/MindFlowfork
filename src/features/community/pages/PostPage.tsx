@@ -130,7 +130,7 @@ export const PostPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-[100vw] overflow-x-hidden md:max-w-2xl mx-auto pb-[140px] min-h-screen bg-white">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-hidden md:max-w-2xl mx-auto pb-[200px] min-h-screen bg-white relative">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
@@ -235,54 +235,70 @@ export const PostPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {comments?.map(comment => (
-              <CommentThread
-                key={comment.id}
-                comment={comment}
-                onReply={(id, username) => setReplyingTo({ id, username })}
-                currentUserId={user?.id}
-              />
-            ))}
-            {(!comments || comments.length === 0) && (
-              <div className="text-center text-gray-500 py-8">No comments yet. Be the first to reply!</div>
+            {comments && comments.length > 0 ? (
+                comments.map(comment => (
+                  <CommentThread
+                    key={comment.id}
+                    comment={comment}
+                    onReply={(id, username) => setReplyingTo({ id, username })}
+                    currentUserId={user?.id}
+                  />
+                ))
+            ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500 space-y-3">
+                    <MessageCircle size={48} className="text-gray-300" strokeWidth={1.5} />
+                    <p className="text-base font-medium">No comments yet</p>
+                    <p className="text-sm">Be the first to share your thoughts!</p>
+                </div>
             )}
           </div>
         )}
       </div>
 
       {/* Comment Input Sticky Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-gray-200 p-3 z-40 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(255,255,255,1)]">
+      {/* Comment Input Keyboard-Aware Fixed Bottom */}
+      <div className="fixed bottom-[56px] md:bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-gray-200 px-4 py-3 z-50 pb-[calc(1rem_+_env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(255,255,255,1)]">
         {replyingTo && (
-          <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-t-lg mb-2 -mt-3 mx-1 border border-gray-100 border-b-0">
+          <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-t-xl mb-3 -mt-3 border border-gray-100 border-b-0 shadow-sm">
             <span className="text-xs text-gray-500">Replying to <span className="font-semibold text-gray-900">{replyingTo.username}</span></span>
             <button type="button" onClick={() => setReplyingTo(null)} className="text-gray-400 hover:text-gray-900 text-xs font-bold px-2 py-1">Cancel</button>
           </div>
         )}
-        <form onSubmit={handleCommentSubmit} className="flex items-center gap-3">
-          <img
-            src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email}`}
-            className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100"
-            alt="avatar"
-          />
-          <div className="flex-1 flex items-center bg-transparent relative">
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder={replyingTo ? "Add a reply..." : "Add a comment..."}
-              className="w-full bg-gray-100/80 border-none rounded-full px-4 py-2.5 pr-[70px] text-sm text-gray-900 placeholder-gray-500 focus:ring-0 focus:outline-none focus:bg-gray-100 transition-colors"
-              disabled={submitCommentMutation.isPending}
-            />
-            {commentText.trim() && (
-              <button
-                type="submit"
+        <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+              <img
+                src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email}`}
+                className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100 mt-1"
+                alt="avatar"
+              />
+              <textarea
+                value={commentText}
+                onChange={(e) => {
+                    setCommentText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onFocus={(e) => {
+                    // Smoothly scroll to bring composer into view when keyboard opens
+                    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300);
+                }}
+                placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
+                className="flex-1 bg-gray-100/80 border border-transparent rounded-2xl px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-indigo-100 transition-colors outline-none resize-none min-h-[46px] max-h-[120px]"
+                rows={1}
                 disabled={submitCommentMutation.isPending}
-                className="absolute right-1 px-3 py-1 text-sm font-semibold text-blue-500 hover:text-blue-700 disabled:opacity-50"
-              >
-                {submitCommentMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Post'}
-              </button>
-            )}
+              />
           </div>
+          {commentText.trim() && (
+             <div className="flex justify-end pr-1">
+                <button
+                    type="submit"
+                    disabled={submitCommentMutation.isPending}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                >
+                    {submitCommentMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <><Send size={14} /> Post</>}
+                </button>
+             </div>
+          )}
         </form>
       </div>
     </div>
