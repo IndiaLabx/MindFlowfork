@@ -34,9 +34,9 @@ export const ChatRooms: React.FC = () => {
 
   // Clear location state after capturing so refresh doesn't auto-open it
   useEffect(() => {
-    document.body.classList.add('hide-bottom-nav');
+
     return () => {
-      document.body.classList.remove('hide-bottom-nav');
+
     };
   }, []);
   useEffect(() => {
@@ -63,7 +63,7 @@ export const ChatRooms: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto pb-32 px-4">
+    <div className="flex flex-col w-full max-w-2xl mx-auto pb-[calc(56px_+_env(safe-area-inset-bottom))] px-4">
       <div className="flex items-center gap-3 mb-6 mt-4"><button onClick={() => navigate('/community')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800"><ArrowLeft size={24} /></button><h2 className="text-2xl font-bold text-gray-900">Messages</h2></div>
       <div className="space-y-2">
         {rooms?.map(room => {

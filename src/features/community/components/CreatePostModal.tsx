@@ -5,7 +5,8 @@ import { useAuth } from '../../auth/context/AuthContext';
 import { createPost, createReel } from '../api/communityApi';
 import { uploadMediaWithProgress } from '../api/uploadMedia';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCreatePost } from '../hooks/useCreatePost';
 import { Post } from '../api/communityApi';
 
 interface CreatePostModalProps {
@@ -25,7 +26,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
   const [postType, setPostType] = useState<'text' | 'image' | 'reel'>('text');
 
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const { createPost, isPending, uploadProgress, resetProgress } = useCreatePost(feedType);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const reelInputRef = useRef<HTMLInputElement>(null);
@@ -36,7 +37,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
     setPreviewUrl(null);
     setPostType('text');
     setIsUploading(false);
-    setUploadProgress(0);
+    resetProgress();
     if (imageInputRef.current) imageInputRef.current.value = '';
     if (reelInputRef.current) reelInputRef.current.value = '';
   };
@@ -92,46 +93,32 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
     }
   };
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated');
-      let mediaUrl: string | undefined = undefined;
 
-      if (file) {
-        setIsUploading(true);
-        mediaUrl = await uploadMediaWithProgress(file, user.id, (progress) => {
-          setUploadProgress(progress);
-        });
-      }
-
-      const finalType = postType === 'text' && !file && feedType === 'reels' ? 'reel' : postType;
-
-      return await createPost(user.id, content, finalType, mediaUrl);
-    },
-    onSuccess: (newPost) => {
-      // Optimistic update
-      const queryKey = feedType === 'reels' ? ['community-posts-reels'] : ['community-posts'];
-
-      queryClient.setQueryData<Post[]>(queryKey, (old) => {
-        if (!old) return [newPost as any];
-        return [newPost as any, ...old];
-      });
-
-      showToast({ title: 'Success', message: 'Post published successfully!', variant: 'success' });
-      handleClose();
-    },
-    onError: (err: any) => {
-      setIsUploading(false);
-      showToast({ title: 'Error', message: err.message || 'Failed to create post', variant: 'error' });
-    }
-  });
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!content.trim() && !file) {
       showToast({ title: 'Wait', message: 'Post cannot be empty', variant: 'error' });
       return;
     }
-    createMutation.mutate();
+
+    if (!user) {
+        showToast({ title: 'Error', message: 'You must be logged in to post.', variant: 'error' });
+        return;
+    }
+
+    setIsUploading(true);
+    try {
+        await createPost({
+            userId: user.id,
+            content,
+            file,
+            postType
+        });
+        handleClose();
+    } catch (err) {
+        // Error handled in the hook
+    } finally {
+        setIsUploading(false);
+    }
   };
 
   return (
@@ -150,7 +137,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-[9999] bg-white rounded-t-3xl shadow-2xl p-6 pb-24 md:pb-6 max-h-[90vh] flex flex-col sm:max-w-xl sm:mx-auto sm:inset-y-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
+            className="fixed inset-x-0 bottom-[calc(56px_+_env(safe-area-inset-bottom))] sm:bottom-auto z-[9999] bg-white rounded-t-3xl shadow-2xl p-6 pb-6 md:pb-6 max-h-[85vh] flex flex-col sm:max-w-xl sm:mx-auto sm:inset-y-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Create {feedType === 'reels' ? 'Reel' : 'Post'}</h2>
@@ -238,7 +225,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
                 {isUploading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>{uploadProgress > 0 ? `Uploading \${uploadProgress}%` : 'Processing...'}</span>
+                    <span>{uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Processing...'}</span>
                   </>
                 ) : (
                   'Publish'
@@ -251,7 +238,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
               <div className="w-full h-1.5 bg-gray-100 rounded-full mt-4 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `\${uploadProgress}%` }}
+                  animate={{ width: `${uploadProgress}%` }}
                   className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
                 />
               </div>

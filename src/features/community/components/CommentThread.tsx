@@ -102,7 +102,7 @@ const SingleComment: React.FC<{
           className="w-full h-full"
         />
       </div>
-        <div className="flex-1 pr-4 ml-3 flex flex-col justify-start overflow-hidden">
+        <div className="flex-1 pr-4 ml-3 flex flex-col justify-start">
           <div className="text-[14px] leading-snug">
             <div className="inline-flex items-center gap-1.5 mr-2">
               <span
@@ -138,16 +138,7 @@ const SingleComment: React.FC<{
             Reply
           </button>
 
-          {currentUserId && currentUserId === comment.user_id && (
-              <button
-                onClick={() => setIsDeleteModalOpen(true)}
-                disabled={isDeleting}
-                className="text-[12px] text-red-500 font-semibold hover:text-red-700 transition-colors disabled:opacity-50 flex items-center gap-1 ml-2"
-              >
-                  {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  Delete
-              </button>
-          )}
+
 
           <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
@@ -173,6 +164,15 @@ const SingleComment: React.FC<{
         {(comment.likes_count || 0) > 0 && (
           <span className="text-[10px] font-semibold text-gray-500 mt-0.5">{comment.likes_count}</span>
         )}
+        {currentUserId && currentUserId === comment.user_id && (
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                disabled={isDeleting}
+                className="p-2 text-red-400 hover:text-red-600 transition-colors disabled:opacity-50 mt-1 flex items-center justify-center -mr-2"
+              >
+                  {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+              </button>
+          )}
       </div>
     </div>
   );

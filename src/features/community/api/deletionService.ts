@@ -54,7 +54,40 @@ export const deletePostService = async (postId: string, postOwnerId: string): Pr
     if (!user) throw new Error("Unauthenticated");
 
     try {
-        // Attempt deletion. If already deleted, RLS/PostgREST will return silently or 0 rows affected.
+        // 1. Resolve storage object path by fetching the post first
+        const { data: post, error: fetchError } = await supabase
+            .from('posts')
+            .select('media_url, type')
+            .eq('id', postId)
+            .single();
+
+        if (fetchError) {
+            console.warn('[DeletionService] Post not found or error fetching:', fetchError.message);
+            // We can continue to DB deletion just in case it exists without media
+        } else if (post?.media_url && post.media_url.includes('supabase.co')) {
+            // 2. Delete storage object via Storage API (Idempotent)
+            try {
+                // Extract the object path from the public URL
+                // URL looks like: https://[project].supabase.co/storage/v1/object/public/post_media/user_id-timestamp.jpg
+                const urlObj = new URL(post.media_url);
+                const pathParts = urlObj.pathname.split('/public/');
+                if (pathParts.length > 1) {
+                    const fullPath = pathParts[1]; // e.g. "post_media/fileName.jpg"
+                    const bucket = fullPath.split('/')[0];
+                    const fileName = fullPath.substring(bucket.length + 1);
+
+                    // Idempotent delete: if file doesn't exist, it won't throw
+                    const { error: storageError } = await supabase.storage.from(bucket).remove([fileName]);
+                    if (storageError) {
+                        console.warn('[DeletionService] Storage deletion warning (idempotent):', storageError.message);
+                    }
+                }
+            } catch (storageErr) {
+                console.warn('[DeletionService] Could not parse media URL for storage deletion:', storageErr);
+            }
+        }
+
+        // 3. Delete DB row
         const { error, count } = await supabase
             .from('posts')
             .delete({ count: 'exact' })
@@ -63,7 +96,7 @@ export const deletePostService = async (postId: string, postOwnerId: string): Pr
 
         if (error) throw error;
 
-        // Log the audit event asynchronously
+        // 4. Log the audit event asynchronously
         logDeletionEvent('post_deleted', user.id, postId);
 
         return true;
@@ -73,10 +106,6 @@ export const deletePostService = async (postId: string, postOwnerId: string): Pr
     }
 };
 
-/**
- * Deletes a Reel.
- * Temporarily, Cloudinary assets are orphaned. We log detailed metadata to allow future backend cleanup.
- */
 export const deleteReelService = async (reelId: string, reelOwnerId: string, videoUrl?: string): Promise<boolean> => {
     const isOwner = await verifyOwnership(reelOwnerId);
     if (!isOwner) throw new Error("Unauthorized: You do not have permission to delete this reel.");

@@ -257,7 +257,7 @@ export const PostPage: React.FC = () => {
 
       {/* Comment Input Sticky Bottom */}
       {/* Comment Input Keyboard-Aware Fixed Bottom */}
-      <div className="fixed bottom-[56px] md:bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-gray-200 px-4 py-3 z-50 pb-[calc(1rem_+_env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(255,255,255,1)]">
+      <div className="fixed bottom-[calc(56px_+_env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-gray-200 px-4 py-3 z-50 md:pb-[calc(1rem_+_env(safe-area-inset-bottom))] pb-3 shadow-[0_-10px_20px_rgba(255,255,255,1)]">
         {replyingTo && (
           <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-t-xl mb-3 -mt-3 border border-gray-100 border-b-0 shadow-sm">
             <span className="text-xs text-gray-500">Replying to <span className="font-semibold text-gray-900">{replyingTo.username}</span></span>
