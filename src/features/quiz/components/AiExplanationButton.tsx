@@ -116,7 +116,16 @@ Fun Fact: ${data.fun_fact}
         }
     };
 
-    const handleExplain = async () => {
+    const handleCloseModal = () => {
+        setIsOpen(false);
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+    };
+
+    const handleExplain = async (e?: React.MouseEvent) => {
+        e?.stopPropagation(); // Prevent bubbling that might immediately trigger outside click listeners
         setIsOpen(true);
         if (data || isLoading) return; // Concurrency protection
 
@@ -245,40 +254,39 @@ Fun Fact: ${data.fun_fact}
         return () => clearInterval(interval);
     }, [isLoading]);
 
-    // Close modal on click outside, handle cancellation, and handle escape key (for hardware back)
+    // Close modal on click outside and handle escape key (for hardware back)
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                handleCloseModal();
             }
         };
 
         const handleEscape = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                setIsOpen(false);
+                handleCloseModal();
             }
         };
 
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
             document.addEventListener('keydown', handleEscape);
-        } else {
-            // Cancel any ongoing request if modal is closed
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-                abortControllerRef.current = null;
-            }
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscape);
-            // Cleanup on unmount
+        };
+    }, [isOpen]);
+
+    // Strict Unmount Cleanup
+    useEffect(() => {
+        return () => {
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
             }
         };
-    }, [isOpen]);
+    }, []);
 
     return (
         <>
@@ -325,7 +333,7 @@ Fun Fact: ${data.fun_fact}
                                     </>
                                 )}
                                 <button
-                                    onClick={() => setIsOpen(false)}
+                                    onClick={handleCloseModal}
                                     className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                                 >
                                     <X className="w-5 h-5" />
