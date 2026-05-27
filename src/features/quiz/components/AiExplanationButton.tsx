@@ -44,12 +44,16 @@ interface AiResponse {
  */
 export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ question, selectedAnswer }) => {
     const [isOpen, setIsOpen] = useState(false);
+
+
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("Consulting the AI Tutor...");
     const [data, setData] = useState<AiResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const overlayRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const { showToast } = useNotification();
 
     const handleCopy = () => {
@@ -114,46 +118,111 @@ Fun Fact: ${data.fun_fact}
 
     const handleExplain = async () => {
         setIsOpen(true);
-        if (data) return; // Cache: Don't re-fetch if we already have it for this instance
+        if (data || isLoading) return; // Concurrency protection
 
         setIsLoading(true);
         setError(null);
 
+        // Setup AbortController and Timeout
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        const timeoutId = setTimeout(() => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort('timeout');
+            }
+        }, 15000); // 15-second strict timeout
+
         try {
-            const { data: resultData, error: invokeError } = await supabase.functions.invoke('ask-ai-tutor', {
+            // Using standard fetch structure wrapper if supabase invoke doesn't support signal cleanly,
+            // but we can just use a Promise wrapper to enforce the abort locally.
+            const invokePromise = supabase.functions.invoke('ask-ai-tutor', {
                 body: {
                     questionId: question.id,
                     questionText: question.question,
                     options: question.options,
                     correctAnswer: question.correct,
-                    locale: 'en' // Can be dynamically set based on user preferences in the future
+                    locale: 'en'
                 }
             });
 
+            const abortPromise = new Promise((_, reject) => {
+                signal.addEventListener('abort', () => {
+                    reject(new DOMException(signal.reason === 'timeout' ? 'timeout' : 'abort', 'AbortError'));
+                });
+            });
+
+            const { data: resultData, error: invokeError } = await Promise.race([invokePromise, abortPromise]) as any;
+
             if (invokeError) {
                 console.error("Function invocation error:", invokeError);
-                throw new Error("Failed to connect to the AI Tutor service.");
+                throw new Error("network_error");
             }
 
             if (resultData?.error) {
-                throw new Error(resultData.error);
+                console.error("Backend returned error:", resultData.error);
+                throw new Error("provider_error");
             }
 
             if (resultData?.data) {
                 setData(resultData.data);
             } else {
-                 throw new Error("Received an empty response from the AI Tutor.");
+                throw new Error("empty_response");
             }
 
         } catch (err: any) {
-            console.error("AI Explanation Error:", err);
-            setError(err.message || "Something went wrong.");
+            if (err.name === 'AbortError') {
+                if (err.message === 'timeout') {
+                    setError("The request took too long. Please try again.");
+                } else {
+                    // Modal was closed, silent abort
+                    console.log("AI Explanation request cancelled by user.");
+                }
+            } else {
+                console.error("AI Explanation Error:", err);
+
+                // User-Friendly Error Translation Layer
+                switch (err.message) {
+                    case 'network_error':
+                        setError("Network issue. Please check your connection.");
+                        break;
+                    case 'provider_error':
+                    case 'empty_response':
+                        setError("AI Tutor is currently busy or overloaded. Please try again shortly.");
+                        break;
+                    default:
+                        setError("Something went wrong loading the explanation.");
+                }
+            }
         } finally {
+            clearTimeout(timeoutId);
             setIsLoading(false);
+            abortControllerRef.current = null;
         }
     };
 
-    // Close modal on click outside
+    // Cycle loading messages for better perceived UX
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isLoading) {
+            const messages = [
+                "Consulting the AI Tutor...",
+                "Analyzing question...",
+                "Understanding concepts...",
+                "Preparing explanation...",
+                "Fetching latest updates..."
+            ];
+            let index = 0;
+            setLoadingMessage(messages[0]);
+            interval = setInterval(() => {
+                index = (index + 1) % messages.length;
+                setLoadingMessage(messages[index]);
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [isLoading]);
+
+    // Close modal on click outside, handle cancellation, and handle escape key (for hardware back)
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
@@ -161,11 +230,30 @@ Fun Fact: ${data.fun_fact}
             }
         };
 
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleEscape);
+        } else {
+            // Cancel any ongoing request if modal is closed
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
         }
+
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+            // Cleanup on unmount
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
         };
     }, [isOpen]);
 
@@ -184,6 +272,8 @@ Fun Fact: ${data.fun_fact}
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
                     <div
                         ref={overlayRef}
+                        role="dialog"
+                        aria-modal="true"
                         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 zoom-in-95 duration-300"
                     >
                         {/* Header */}
@@ -225,7 +315,7 @@ Fun Fact: ${data.fun_fact}
                             {isLoading ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                                    <p className="text-gray-500 dark:text-gray-400 font-medium">Consulting the AI Tutor...</p>
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">{loadingMessage}</p>
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-center text-red-500">
