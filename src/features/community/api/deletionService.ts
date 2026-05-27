@@ -87,12 +87,24 @@ export const deletePostService = async (postId: string, postOwnerId: string): Pr
             }
         }
 
-        // 3. Delete DB row
+        // 3. Decouple Media to bypass potentially restrictive DB triggers on DELETE
+        if (post?.media_url) {
+            const { error: unlinkError } = await supabase
+                .from('posts')
+                .update({ media_url: null })
+                .eq('id', postId)
+                .eq('user_id', user.id);
+            if (unlinkError) {
+                console.warn('[DeletionService] Failed to unlink media prior to deletion:', unlinkError.message);
+            }
+        }
+
+        // 4. Delete DB row safely
         const { error, count } = await supabase
             .from('posts')
             .delete({ count: 'exact' })
             .eq('id', postId)
-            .eq('user_id', user.id); // Double check ownership in query
+            .eq('user_id', user.id);
 
         if (error) throw error;
 

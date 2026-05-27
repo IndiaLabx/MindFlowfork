@@ -8,6 +8,7 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreatePost } from '../hooks/useCreatePost';
 import { Post } from '../api/communityApi';
+import { KeyboardAwareSurface } from '../../../components/ui/KeyboardAwareSurface';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -132,12 +133,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
             onClick={handleClose}
           />
-          <motion.div
+          <KeyboardAwareSurface
+            isModal={true}
+            hasGlobalFooter={true}
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-[calc(56px_+_env(safe-area-inset-bottom))] sm:bottom-auto z-[9999] bg-white rounded-t-3xl shadow-2xl p-6 pb-6 md:pb-6 max-h-[85vh] flex flex-col sm:max-w-xl sm:mx-auto sm:inset-y-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
+            className="bg-white rounded-t-3xl shadow-2xl p-6 max-h-[85vh] custom-scrollbar"
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Create {feedType === 'reels' ? 'Reel' : 'Post'}</h2>
@@ -225,7 +228,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
                 {isUploading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>{uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Processing...'}</span>
+                    <span>{uploadProgress > 0 ? (uploadProgress < 100 ? 'Uploading ' + uploadProgress + '%' : 'Finalizing...') : 'Processing...'}</span>
                   </>
                 ) : (
                   'Publish'
@@ -243,7 +246,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClos
                 />
               </div>
             )}
-          </motion.div>
+          </KeyboardAwareSurface>
         </>
       )}
     </AnimatePresence>

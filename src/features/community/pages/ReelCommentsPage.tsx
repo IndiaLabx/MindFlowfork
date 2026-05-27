@@ -7,10 +7,12 @@ import { useAuth } from '../../auth/context/AuthContext';
 import { Heart, ArrowLeft, Send, Loader2, MessageCircle } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
+import { translateError } from '../utils/errorTranslation';
 import { CommentSkeleton } from '../components/CommentSkeleton';
 import { CommentThread } from '../components/CommentThread';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
+import { KeyboardAwareBottomBar } from "../../../components/ui/KeyboardAwareBottomBar";
 export const ReelCommentsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -88,8 +90,9 @@ export const ReelCommentsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['community-reel', id] });
       showToast({ title: 'Success', message: 'Comment posted', variant: 'success' });
     },
-    onError: () => {
-      showToast({ title: 'Error', message: 'Failed to post comment', variant: 'error' });
+    onError: (error: any) => {
+      const translated = translateError(error, 'submitCommentMutation');
+      showToast({ title: 'Error', message: translated.userMessage, variant: 'error' });
     }
   });
 
@@ -108,7 +111,7 @@ export const ReelCommentsPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-[100vw] overflow-x-hidden md:max-w-2xl mx-auto pb-[200px] min-h-screen bg-white relative">
+    <div className="flex flex-col w-full max-w-[100vw] md:max-w-2xl mx-auto pb-[200px] min-h-screen bg-white relative">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center gap-4 shadow-sm">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
@@ -182,7 +185,7 @@ export const ReelCommentsPage: React.FC = () => {
 
       {/* Comment Input Sticky Bottom */}
       {/* Comment Input Keyboard-Aware Fixed Bottom */}
-      <div className="fixed bottom-[calc(56px_+_env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-gray-200 px-4 py-3 z-50 md:pb-[calc(1rem_+_env(safe-area-inset-bottom))] pb-3 shadow-[0_-10px_20px_rgba(255,255,255,1)]">
+      <KeyboardAwareBottomBar hasGlobalFooter={true} className="!py-3">
         {replyingTo && (
           <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-t-xl mb-3 -mt-3 border border-gray-100 border-b-0 shadow-sm">
             <span className="text-xs text-gray-500">Replying to <span className="font-semibold text-gray-900">{replyingTo.username}</span></span>
@@ -225,7 +228,7 @@ export const ReelCommentsPage: React.FC = () => {
              </div>
           )}
         </form>
-      </div>
+      </KeyboardAwareBottomBar>
     </div>
   );
 };

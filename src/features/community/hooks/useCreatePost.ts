@@ -5,6 +5,7 @@ import { uploadMediaWithProgress } from '../api/uploadMedia';
 import { createPost } from '../api/communityApi';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { Post } from '../api/communityApi';
+import { translateError } from '../utils/errorTranslation';
 
 export const useCreatePost = (feedType: 'posts' | 'reels') => {
     const queryClient = useQueryClient();
@@ -48,7 +49,7 @@ export const useCreatePost = (feedType: 'posts' | 'reels') => {
                             if (index === 0) {
                                 return {
                                     ...page,
-                                    data: [newPost, ...(page.data || [])],
+                                    data: [newPost, ...(Array.isArray(page.data) ? page.data : [])],
                                 };
                             }
                             return page;
@@ -69,7 +70,8 @@ export const useCreatePost = (feedType: 'posts' | 'reels') => {
             setUploadProgress(0); // reset progress on success
         },
         onError: (err: any) => {
-            showToast({ title: 'Error', message: err.message || 'Failed to publish', variant: 'error' });
+            const translated = translateError(err, 'useCreatePost');
+            showToast({ title: 'Error', message: translated.userMessage, variant: 'error' });
             setUploadProgress(0); // reset progress on error
         }
     });

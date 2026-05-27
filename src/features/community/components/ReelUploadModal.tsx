@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../auth/context/AuthContext';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { cn } from '../../../utils/cn';
+import { KeyboardAwareSurface } from '../../../components/ui/KeyboardAwareSurface';
 
 interface ReelUploadModalProps {
   isOpen: boolean;
@@ -172,12 +173,14 @@ export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClos
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/60 sm:items-center sm:justify-center backdrop-blur-sm p-4">
-          <motion.div
+          <KeyboardAwareSurface
+            isModal={true}
+            hasGlobalFooter={true}
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom)]"
+            onClick={(e: any) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800">
@@ -240,7 +243,7 @@ export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClos
                     <div className="flex flex-col gap-2">
                         <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
                             <span>Uploading to Cloud...</span>
-                            <span>{uploadProgress}%</span>
+                            <span>{uploadProgress < 100 ? uploadProgress + '%' : 'Finalizing...'}</span>
                         </div>
                         <div className="w-full h-3 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <motion.div
@@ -267,7 +270,7 @@ export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClos
                     </button>
                 )}
             </div>
-          </motion.div>
+          </KeyboardAwareSurface>
         </div>
       )}
     </AnimatePresence>

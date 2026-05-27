@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { deletePostService, deleteReelService, deleteCommentService } from '../api/deletionService';
+import { translateError } from '../utils/errorTranslation';
 
 export const useDeletePost = () => {
     const queryClient = useQueryClient();
@@ -23,7 +24,7 @@ export const useDeletePost = () => {
                     ...old,
                     pages: old.pages?.map((page: any) => ({
                         ...page,
-                        data: page.data?.filter((p: any) => p.id !== variables.id)
+                        data: (Array.isArray(page.data) ? page.data : []).filter((p: any) => p.id !== variables.id)
                     })) || old.pages
                 };
             });
@@ -34,7 +35,8 @@ export const useDeletePost = () => {
             queryClient.invalidateQueries({ queryKey: ['community-post', variables.id] });
         },
         onError: (error: any) => {
-            showToast({ title: 'Error', message: error.message || 'Failed to delete post', variant: 'error' });
+            const translated = translateError(error, 'useDeletePost');
+            showToast({ title: 'Error', message: translated.userMessage, variant: 'error' });
         },
         onSettled: () => {
             setIsDeletingId(null);
@@ -62,7 +64,7 @@ export const useDeleteReel = () => {
                 if (!old) return old;
                 return {
                     ...old,
-                    data: old.data?.filter((r: any) => r.id !== variables.id) || old.data
+                    data: (Array.isArray(old.data) ? old.data : []).filter((r: any) => r.id !== variables.id) || old.data
                 };
             });
 
@@ -70,7 +72,8 @@ export const useDeleteReel = () => {
             queryClient.invalidateQueries({ queryKey: ['community-reel', variables.id] });
         },
         onError: (error: any) => {
-            showToast({ title: 'Error', message: error.message || 'Failed to delete reel', variant: 'error' });
+            const translated = translateError(error, 'useDeleteReel');
+            showToast({ title: 'Error', message: translated.userMessage, variant: 'error' });
         },
         onSettled: () => {
             setIsDeletingId(null);
@@ -104,7 +107,8 @@ export const useDeleteComment = (type: 'post' | 'reel', parentId: string) => {
             queryClient.invalidateQueries({ queryKey: parentKey });
         },
         onError: (error: any) => {
-            showToast({ title: 'Error', message: error.message || 'Failed to delete comment', variant: 'error' });
+            const translated = translateError(error, 'useDeleteComment');
+            showToast({ title: 'Error', message: translated.userMessage, variant: 'error' });
         },
         onSettled: () => {
             setIsDeletingId(null);
