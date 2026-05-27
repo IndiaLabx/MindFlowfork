@@ -131,7 +131,7 @@ Fun Fact: ${data.fun_fact}
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort('timeout');
             }
-        }, 30000); // 30-second strict timeout for grounding models
+        }, 45000); // 45-second strict timeout for grounding models
 
         try {
             // Using standard fetch structure wrapper if supabase invoke doesn't support signal cleanly,
