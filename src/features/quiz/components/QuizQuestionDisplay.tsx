@@ -262,7 +262,7 @@ export function QuizQuestionDisplay({
                         aria-label="Download file">
                            <Download className="w-4 h-4" />
                        </button>
-                       <AiExplanationButton question={question} selectedAnswer={selectedAnswer} />
+                       <AiExplanationButton key={question.id} question={question} selectedAnswer={selectedAnswer} />
                    </div>
                 )}
 

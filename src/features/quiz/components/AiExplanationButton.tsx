@@ -191,6 +191,9 @@ Fun Fact: ${data.fun_fact}
             abortControllerRef.current = new AbortController();
             const signal = abortControllerRef.current.signal;
 
+            // Capture the current question ID for strict identity validation
+            const requestQuestionId = question.id;
+
             try {
                 await new Promise<void>((resolve, reject) => {
                     const timer = setTimeout(resolve, fakeDelay);
@@ -200,7 +203,8 @@ Fun Fact: ${data.fun_fact}
                     });
                 });
 
-                if (!signal.aborted) {
+                // Ensure component is still mounted and question identity hasn't changed
+                if (!signal.aborted && requestQuestionId === question.id) {
                     setData(cachedData);
                     setExplanationId(question.id);
                     setHasVoted(false);
@@ -366,14 +370,27 @@ Fun Fact: ${data.fun_fact}
         };
     }, [isOpen]);
 
-    // Strict Unmount Cleanup
+    // Question ID change reset & Strict Unmount Cleanup
     useEffect(() => {
+        // Reset state if question identity changes
+        setIsOpen(false);
+        setIsLoading(false);
+        setData(null);
+        setExplanationId(null);
+        setHasVoted(false);
+        setError(null);
+
+        // Abort any ongoing request for the old question
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
         return () => {
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
             }
         };
-    }, []);
+    }, [question.id]);
 
     return (
         <>
