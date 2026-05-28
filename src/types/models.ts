@@ -87,6 +87,8 @@ export interface Question {
   correct: string;
   /** Detailed explanation object. */
   explanation: Explanation;
+  /** Server-side AI explanation JSON. */
+  ask_ai_explanation?: any;
 }
 
 // --- Idiom Types ---

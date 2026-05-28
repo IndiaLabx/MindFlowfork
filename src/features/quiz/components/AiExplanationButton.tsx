@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Loader2, Sparkles, AlertCircle, Copy, Download } from 'lucide-react';
+import { Bot, X, Loader2, Sparkles, AlertCircle, Copy, Download, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
 import { useNotification } from '../../../stores/useNotificationStore';
@@ -49,6 +49,8 @@ export const AiExplanationButton: React.FC<AiExplanationButtonProps> = ({ questi
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("Consulting the AI Tutor...");
     const [data, setData] = useState<AiResponse | null>(null);
+    const [explanationId, setExplanationId] = useState<string | null>(null);
+    const [hasVoted, setHasVoted] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     const overlayRef = useRef<HTMLDivElement>(null);
@@ -116,6 +118,22 @@ Fun Fact: ${data.fun_fact}
         }
     };
 
+    const handleVote = async (isHelpful: boolean) => {
+        if (!explanationId || hasVoted) return;
+        setHasVoted(true);
+        showToast({ title: 'Thank You!', message: 'Your feedback helps improve the AI Tutor.', variant: 'success', duration: 2000 });
+
+        try {
+            await supabase.rpc('vote_explanation', {
+                p_explanation_id: explanationId,
+                p_is_helpful: isHelpful
+            });
+        } catch (err) {
+            console.error("Failed to submit vote:", err);
+            setHasVoted(false);
+        }
+    };
+
     const handleCloseModal = () => {
         setIsOpen(false);
         if (abortControllerRef.current) {
@@ -128,6 +146,15 @@ Fun Fact: ${data.fun_fact}
         e?.stopPropagation(); // Prevent bubbling that might immediately trigger outside click listeners
         setIsOpen(true);
         if (data || isLoading) return; // Concurrency protection
+
+        // Check if the explanation is already cached directly on the question object
+        if ((question as any).ask_ai_explanation) {
+             const cachedData = (question as any).ask_ai_explanation;
+             setData(cachedData);
+             setExplanationId(question.id);
+             setHasVoted(false);
+             return;
+        }
 
         setIsLoading(true);
         setError(null);
@@ -145,14 +172,14 @@ Fun Fact: ${data.fun_fact}
         try {
             // Using standard fetch structure wrapper if supabase invoke doesn't support signal cleanly,
             // but we can just use a Promise wrapper to enforce the abort locally.
+            const payload = {
+                questionId: question.id,
+                locale: 'en'
+            };
+            console.log("ASK_AI_PAYLOAD", payload);
+
             const invokePromise = supabase.functions.invoke('ask-ai-tutor', {
-                body: {
-                    questionId: question.id,
-                    questionText: question.question,
-                    options: question.options,
-                    correctAnswer: question.correct,
-                    locale: 'en'
-                }
+                body: payload
             });
 
             const abortPromise = new Promise((_, reject) => {
@@ -444,6 +471,31 @@ Fun Fact: ${data.fun_fact}
                                             </h4>
                                             <div className="text-purple-900 dark:text-purple-200 text-sm italic prose dark:prose-invert max-w-none prose-sm">
                                                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{DOMPurify.sanitize(data.fun_fact || "", purifyConfig)}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 7. Feedback Voting */}
+                                    {explanationId && (
+                                        <div className="pt-4 mt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Was this explanation helpful?</p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleVote(true)}
+                                                    disabled={hasVoted}
+                                                    className={`p-2 rounded-full transition-colors ${hasVoted ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'hover:bg-emerald-50 text-gray-400 hover:text-emerald-500'}`}
+                                                    aria-label="Thumbs up"
+                                                >
+                                                    <ThumbsUp className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleVote(false)}
+                                                    disabled={hasVoted}
+                                                    className={`p-2 rounded-full transition-colors ${hasVoted ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'hover:bg-red-50 text-gray-400 hover:text-red-500'}`}
+                                                    aria-label="Thumbs down"
+                                                >
+                                                    <ThumbsDown className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </div>
                                     )}
