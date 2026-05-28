@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
 import defaultAvatar from '../../../assets/default-avatar.svg';
 import { syncService } from '../../../lib/syncService';
 import { db } from '../../../lib/db';
@@ -16,6 +17,8 @@ import { useQuizSessionStore } from '../../quiz/stores/useQuizSessionStore';
 interface AuthContextType {
   profileStatus: string | null;
   deleteRequestedAt: string | null;
+  /** The current canonical public.profiles row. */
+  profile: any | null;
   /** The current Supabase session, or null if not authenticated. */
   session: Session | null;
   /** The current authenticated user object, or null. */
@@ -26,6 +29,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   /** Function to manually refresh user data from the server. */
   refreshUser: () => Promise<void>;
+  /** Function to manually refresh canonical profile from the server. */
+  refreshProfile: () => Promise<void>;
 }
 
 const SESSION_ID_KEY = 'mindflow_device_session_id';
@@ -48,11 +53,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [deleteRequestedAt, setDeleteRequestedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionConflict, setSessionConflict] = useState(false);
   const lastSyncedUserId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let sessionSub: any = null;
@@ -188,12 +195,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       if (session?.user) {
         try {
-            const { data } = await supabase.from('profiles').select('status, delete_requested_at').eq('id', session.user.id).maybeSingle();
+            const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
             if (data) {
+                setProfile(data);
                 setProfileStatus(data.status);
                 setDeleteRequestedAt(data.delete_requested_at);
             }
-        } catch (e) { console.error('Error fetching profile status:', e); }
+        } catch (e) { console.error('Error fetching profile:', e); }
       }
       setLoading(false);
     };
@@ -223,12 +231,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         setUser(finalUser);
         try {
-            const { data } = await supabase.from('profiles').select('status, delete_requested_at').eq('id', finalUser.id).maybeSingle();
+            const { data } = await supabase.from('profiles').select('*').eq('id', finalUser.id).maybeSingle();
             if (data) {
+                setProfile(data);
                 setProfileStatus(data.status);
                 setDeleteRequestedAt(data.delete_requested_at);
             }
-        } catch (e) { console.error('Error fetching profile status on auth change:', e); }
+        } catch (e) { console.error('Error fetching profile on auth change:', e); }
 
         // Check if this is a sign up event (either from explicit event or local flag)
         const isSignup = (event as string) === 'SIGNED_UP' || localStorage.getItem('mindflow_is_signup') === 'true';
@@ -373,15 +382,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await forceEvict();
   };
 
+
   /** Refreshes the user object from Supabase. */
   const refreshUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
   };
 
+  /** Refreshes the canonical profile from Supabase and invalidates caches. */
+  const refreshProfile = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (data) {
+        setProfile(data);
+        setProfileStatus(data.status);
+        setDeleteRequestedAt(data.delete_requested_at);
+
+        // Globally invalidate React Query caches related to avatars/profiles
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        queryClient.invalidateQueries({ queryKey: ['current-user-profile'] });
+        queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+        queryClient.invalidateQueries({ queryKey: ['community-reels'] });
+        queryClient.invalidateQueries({ queryKey: ['chat-rooms'] });
+        queryClient.invalidateQueries({ queryKey: ['my-username'] });
+      }
+    } catch (e) {
+      console.error('Error refreshing profile:', e);
+    }
+  };
+
+
   const value = {
     profileStatus,
     deleteRequestedAt,
+    profile,
+    refreshProfile,
     session,
     user,
     loading,

@@ -1,4 +1,6 @@
 import React from 'react';
+import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../utils/cn';

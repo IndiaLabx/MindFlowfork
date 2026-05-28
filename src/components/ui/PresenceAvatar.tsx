@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
+import { getDeterministicFallback } from '../../utils/avatar';
 
 interface PresenceAvatarProps {
   userId: string;
@@ -22,6 +23,13 @@ export const PresenceAvatar: React.FC<PresenceAvatarProps> = ({
             src={avatarUrl}
             alt={altText}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              const fallback = getDeterministicFallback(altText);
+              if (target.src !== fallback) {
+                target.src = fallback;
+              }
+            }}
           />
         ) : (
           <span className="text-white font-bold text-sm uppercase">

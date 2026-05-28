@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +22,7 @@ import { ErrorState } from '../../../components/ui/ErrorState';
 import { KeyboardAwareBottomBar } from "../../../components/ui/KeyboardAwareBottomBar";
 export const PostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useNotificationStore();
@@ -193,7 +194,7 @@ export const PostPage: React.FC = () => {
         <div className="bg-white p-4 mb-0 border-b border-gray-200">
           <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={() => navigate(`/u/${post.profiles?.username || post.user_id}`)}>
           <img
-            src={post.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${post.profiles?.full_name || 'User'}`}
+            src={getCanonicalAvatarUrl(post.profiles, null)}
             className="w-12 h-12 rounded-full object-cover border border-gray-200"
             alt="avatar"
           />
@@ -270,7 +271,7 @@ export const PostPage: React.FC = () => {
         <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
           <div className="flex items-start gap-3">
               <img
-                src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email}`}
+                src={getCanonicalAvatarUrl(profile, user)}
                 className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100 mt-1"
                 alt="avatar"
               />

@@ -9,7 +9,7 @@ export type Post = {
   type: 'text' | 'image' | 'reel';
   created_at: string;
   updated_at: string;
-  profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null };
+  profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null; updated_at?: string | null; };
   likes_count?: number;
   comments_count?: number;
   is_liked_by_me?: boolean;
@@ -19,7 +19,7 @@ export type SearchProfile = {
   id: string;
   full_name: string | null;
   username: string;
-  avatar_url: string | null;
+  avatar_url: string | null; updated_at?: string | null;
   similarity: number;
   is_following?: boolean;
 };
@@ -52,7 +52,7 @@ export const fetchPosts = async (limit = 20, cursor?: string): Promise<{ data: P
             .from('posts')
             .select(`
             *,
-            profiles:user_id(id, full_name, username, avatar_url)
+            profiles:user_id(id, full_name, username, avatar_url, updated_at)
             `)
             .in('user_id', followingIds)
             .order('created_at', { ascending: false })
@@ -69,7 +69,7 @@ export const fetchPosts = async (limit = 20, cursor?: string): Promise<{ data: P
             .from('posts')
             .select(`
             *,
-            profiles:user_id(id, full_name, username, avatar_url)
+            profiles:user_id(id, full_name, username, avatar_url, updated_at)
             `)
             .order('created_at', { ascending: false })
             .limit(limit);
@@ -128,7 +128,7 @@ export type Comment = {
     content: string;
     created_at: string;
     updated_at: string;
-    profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null };
+    profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null; updated_at?: string | null; };
     likes_count?: number;
     is_liked_by_me?: boolean;
     replies?: Comment[];
@@ -140,7 +140,7 @@ export const fetchComments = async (postId: string, userId?: string): Promise<Co
             .from('post_comments')
             .select(`
                 *,
-                profiles:user_id(id, full_name, username, avatar_url)
+                profiles:user_id(id, full_name, username, avatar_url, updated_at)
             `)
             .eq('post_id', postId)
             .order('created_at', { ascending: true });
@@ -213,7 +213,7 @@ export const createComment = async (postId: string, userId: string, content: str
         parent_comment_id: parentCommentId
     }).select(`
         *,
-        profiles:user_id(id, full_name, username, avatar_url)
+        profiles:user_id(id, full_name, username, avatar_url, updated_at)
     `).single();
 
     if (error) throw error;
@@ -321,7 +321,7 @@ export type UserProfileDetails = {
     id: string;
     full_name: string | null;
     username: string;
-    avatar_url: string | null;
+    avatar_url: string | null; updated_at?: string | null;
     created_at: string;
     followers_count: number;
     following_count: number;
@@ -334,7 +334,7 @@ export const fetchUserProfile = async (identifier: string, currentUserId?: strin
 
         let query = supabase
             .from('profiles')
-            .select('id, full_name, username, avatar_url, created_at');
+            .select('id, full_name, username, avatar_url, updated_at, created_at');
 
         if (isUUID) {
             query = query.eq('id', identifier);
@@ -370,7 +370,7 @@ export const fetchUserPosts = async (profileId: string, limit = 20): Promise<Pos
             .from('posts')
             .select(`
                 *,
-                profiles:user_id(id, full_name, username, avatar_url)
+                profiles:user_id(id, full_name, username, avatar_url, updated_at)
             `)
             .eq('user_id', profileId)
             .order('created_at', { ascending: false })
@@ -457,7 +457,7 @@ export type Reel = {
   caption: string | null;
   created_at: string;
   updated_at: string;
-  profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null };
+  profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null; updated_at?: string | null; };
   likes_count?: number;
   comments_count?: number;
   is_liked_by_me?: boolean;
@@ -471,7 +471,7 @@ export type ReelComment = {
     content: string;
     created_at: string;
     updated_at: string;
-    profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null };
+    profiles?: { id?: string; full_name: string | null; username?: string; avatar_url: string | null; updated_at?: string | null; };
     likes_count?: number;
     is_liked_by_me?: boolean;
     replies?: ReelComment[];
@@ -499,7 +499,7 @@ export const fetchReels = async (limit = 20, cursor?: string): Promise<{ data: R
 
     const [myLikesReq, profilesReq] = await Promise.all([
       user ? supabase.from('reel_likes').select('reel_id').eq('user_id', user.id).in('reel_id', reelIds) : Promise.resolve({ data: [] }),
-      supabase.from('profiles').select('id, full_name, username, avatar_url').in('id', userIds)
+      supabase.from('profiles').select('id, full_name, username, avatar_url, updated_at').in('id', userIds)
     ]);
 
     const myLikedReelIds = new Set((myLikesReq.data || []).map((l: any) => l.reel_id));
@@ -530,7 +530,7 @@ export const fetchReel = async (id: string, currentUserId?: string): Promise<Ree
     try {
         const { data, error } = await supabase
             .from('reels')
-            .select(`*, profiles:user_id(id, full_name, username, avatar_url)`)
+            .select(`*, profiles:user_id(id, full_name, username, avatar_url, updated_at)`)
             .eq('id', id)
             .maybeSingle();
 
@@ -591,7 +591,7 @@ export const fetchReelComments = async (reelId: string, userId?: string): Promis
             .from('reel_comments')
             .select(`
                 *,
-                profiles:user_id(id, full_name, username, avatar_url)
+                profiles:user_id(id, full_name, username, avatar_url, updated_at)
             `)
             .eq('reel_id', reelId)
             .order('created_at', { ascending: true });
@@ -665,7 +665,7 @@ export const createReelComment = async (reelId: string, userId: string, content:
             parent_comment_id: parentCommentId
         }).select(`
             *,
-            profiles:user_id(id, full_name, username, avatar_url)
+            profiles:user_id(id, full_name, username, avatar_url, updated_at)
         `).single();
 
         if (error) throw error;

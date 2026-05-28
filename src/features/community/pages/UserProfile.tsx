@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
@@ -108,7 +109,7 @@ export const UserProfile: React.FC = () => {
                 id: profile!.id,
                 username: profile!.username,
                 full_name: profile!.full_name,
-                avatar_url: profile!.avatar_url,
+                avatar_url: getCanonicalAvatarUrl(profile, null),
                 bio: null // bio not directly typed here
             }
         }),
@@ -215,7 +216,7 @@ export const UserProfile: React.FC = () => {
                 <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold mb-4 shadow-lg shadow-blue-500/20 overflow-hidden">
                     <PresenceAvatar
                         userId={profile.id}
-                        avatarUrl={profile.avatar_url || `https://api.dicebear.com/6.x/avataaars/svg?seed=${profile.id}`}
+                        avatarUrl={getCanonicalAvatarUrl(profile, null)}
                         altText={profile.full_name || 'User'}
                         className="w-full h-full"
                     />

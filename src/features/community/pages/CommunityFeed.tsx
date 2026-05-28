@@ -40,7 +40,7 @@ const FloatingHeart: React.FC<{ x: number, y: number, onComplete: () => void }> 
 };
 
 export const CommunityFeed: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   useSocialRealtime();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -145,7 +145,7 @@ export const CommunityFeed: React.FC = () => {
       {data?.pages.map((page: any, i: number) => (
         <React.Fragment key={i}>
           {page.data.map((post: Post) => (
-            <PostCard
+            <PostCard profile={profile}
               key={post.id}
               post={post}
               onLike={() => {

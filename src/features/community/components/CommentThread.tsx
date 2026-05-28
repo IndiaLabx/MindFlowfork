@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -98,7 +99,7 @@ const SingleComment: React.FC<{
       <div onClick={(e) => { e.stopPropagation(); navigate(`/u/${comment.profiles?.username || comment.user_id}`); }} className={cn("shrink-0 cursor-pointer", isReply ? "w-8 h-8" : "w-10 h-10")}>
         <PresenceAvatar
           userId={comment.user_id}
-          avatarUrl={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${comment.profiles?.full_name || 'User'}`}
+          avatarUrl={getCanonicalAvatarUrl(comment.profiles, null)}
           altText="avatar"
           className="w-full h-full"
         />

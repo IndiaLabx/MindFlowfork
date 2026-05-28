@@ -13,6 +13,7 @@ import { useProfileStats } from '../hooks/useProfileStats';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0';
 
@@ -80,28 +81,8 @@ interface ProfilePageProps {
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettings }) => {
-  const { user, signOut, refreshUser } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const { user, profile, refreshProfile, signOut, refreshUser } = useAuth();
 
-  const { data: profileData } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  useEffect(() => {
-    if (profileData) {
-      setProfile(profileData);
-    }
-  }, [profileData]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
@@ -168,11 +149,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
         if (updateUserError) throw updateUserError;
 
         await refreshUser();
-
-        // Invalidate global queries to reflect new avatar everywhere
-        queryClient.invalidateQueries({ queryKey: ['profile'] });
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-        queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+        // Centralized refresh and invalidation
+        await refreshProfile();
         queryClient.invalidateQueries({ queryKey: ['community-search'] });
         queryClient.invalidateQueries({ queryKey: ['user-posts'] });
         queryClient.invalidateQueries({ queryKey: ['community-comments'] });
@@ -188,9 +166,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
     }
   };
   
-  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || defaultAvatar;
-  // Dynamic cache-buster for rendering
-  const displayAvatarUrl = avatarUrl !== defaultAvatar ? `${avatarUrl}?t=${Date.now()}` : avatarUrl;
+  const displayAvatarUrl = getCanonicalAvatarUrl(profile, user);
 
   const targetExam = profile?.target_exam || user?.user_metadata?.target_exam || 'Not Set';
   const fullName = profile?.full_name || user?.user_metadata?.full_name || 'Student';

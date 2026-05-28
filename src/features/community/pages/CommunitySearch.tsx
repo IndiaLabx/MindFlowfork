@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
 import { motion } from 'framer-motion';
@@ -144,7 +145,7 @@ export const CommunitySearch: React.FC = () => {
                                     <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-gray-200">
                                         <PresenceAvatar
                                             userId={profile.id}
-                                            avatarUrl={profile.avatar_url || `https://api.dicebear.com/6.x/avataaars/svg?seed=${profile.id}`}
+                                            avatarUrl={getCanonicalAvatarUrl(profile, null)}
                                             altText={profile.full_name || 'User'}
                                             className="w-full h-full"
                                         />
