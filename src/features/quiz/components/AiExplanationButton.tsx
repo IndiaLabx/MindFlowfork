@@ -177,44 +177,19 @@ Fun Fact: ${data.fun_fact}
     const handleExplain = async (e?: React.MouseEvent) => {
         e?.stopPropagation(); // Prevent bubbling that might immediately trigger outside click listeners
         setIsOpen(true);
-        if (isLoading) return; // Concurrency protection
-
-        // Always reset data to trigger the Shimmer Skeleton
-        setData(null);
-        setIsLoading(true);
-        setError(null);
+        if (data || isLoading) return; // Concurrency protection
 
         // Check if the explanation is already cached directly on the question object
         if ((question as any).ask_ai_explanation) {
              const cachedData = (question as any).ask_ai_explanation;
-
-             // Enforce artificial delay for premium UX
-             await new Promise(res => setTimeout(res, 1400));
-
-             // Check if modal was closed during the delay
-             if (!isOpen) {
-                 setIsLoading(false);
-                 return;
-             }
-
-             // Defensive normalization even for cached data
-             const normalizedData = {
-                  correct_answer: cachedData.correct_answer || "",
-                  reasoning: cachedData.reasoning || "",
-                  exam_facts: Array.isArray(cachedData.exam_facts) ? cachedData.exam_facts : [],
-                  recent_news: cachedData.recent_news || "",
-                  interesting_facts: Array.isArray(cachedData.interesting_facts) ? cachedData.interesting_facts : [],
-                  fun_fact: cachedData.fun_fact || ""
-             };
-
-             setData(normalizedData);
+             setData(cachedData);
              setExplanationId(question.id);
              setHasVoted(false);
-             setIsLoading(false);
              return;
         }
 
-        // Setup AbortController and Timeout for Network Request
+        setIsLoading(true);
+        setError(null);
 
         // Setup AbortController and Timeout
         abortControllerRef.current = new AbortController();
