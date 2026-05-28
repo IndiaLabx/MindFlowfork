@@ -39,6 +39,38 @@ interface AiResponse {
     fun_fact: string;
 }
 
+const ExplanationSkeleton = () => (
+    <div className="space-y-6 animate-pulse">
+        {/* Correct Answer Skeleton */}
+        <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-4 border border-emerald-100 dark:border-emerald-800/30">
+            <div className="h-4 w-32 bg-emerald-200 dark:bg-emerald-800/50 rounded mb-3"></div>
+            <div className="h-6 w-3/4 bg-emerald-200 dark:bg-emerald-800/50 rounded"></div>
+        </div>
+
+        {/* Reasoning Skeleton */}
+        <div>
+            <div className="h-4 w-40 bg-indigo-100 dark:bg-indigo-900/30 rounded mb-3"></div>
+            <div className="space-y-2">
+                <div className="h-4 w-full bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+                <div className="h-4 w-full bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+                <div className="h-4 w-5/6 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+                <div className="h-4 w-4/6 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+            </div>
+        </div>
+
+        {/* Exam Facts Skeleton */}
+        <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
+            <div className="h-4 w-36 bg-blue-200 dark:bg-blue-800/50 rounded mb-3"></div>
+            <div className="space-y-2">
+                <div className="flex gap-2"><div className="h-4 w-4 bg-blue-200 dark:bg-blue-800/50 rounded-full shrink-0"></div><div className="h-4 w-full bg-blue-100 dark:bg-blue-900/40 rounded"></div></div>
+                <div className="flex gap-2"><div className="h-4 w-4 bg-blue-200 dark:bg-blue-800/50 rounded-full shrink-0"></div><div className="h-4 w-5/6 bg-blue-100 dark:bg-blue-900/40 rounded"></div></div>
+                <div className="flex gap-2"><div className="h-4 w-4 bg-blue-200 dark:bg-blue-800/50 rounded-full shrink-0"></div><div className="h-4 w-4/6 bg-blue-100 dark:bg-blue-900/40 rounded"></div></div>
+            </div>
+        </div>
+    </div>
+);
+
+
 /**
  * A button component that triggers an AI-powered explanation for the current question.
  */
@@ -265,18 +297,17 @@ Fun Fact: ${data.fun_fact}
         let interval: NodeJS.Timeout;
         if (isLoading) {
             const messages = [
-                "Consulting the AI Tutor...",
-                "Analyzing question...",
-                "Understanding concepts...",
-                "Preparing explanation...",
-                "Fetching latest updates..."
+                "🧠 Analyzing concepts...",
+                "📚 Reviewing exam patterns...",
+                "📰 Checking recent context...",
+                "✨ Preparing explanation..."
             ];
             let index = 0;
             setLoadingMessage(messages[0]);
             interval = setInterval(() => {
                 index = (index + 1) % messages.length;
                 setLoadingMessage(messages[index]);
-            }, 3000);
+            }, 1200);
         }
         return () => clearInterval(interval);
     }, [isLoading]);
@@ -371,9 +402,19 @@ Fun Fact: ${data.fun_fact}
                         {/* Content */}
                         <div ref={contentRef} className="p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-800">
                             {isLoading ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                                    <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">{loadingMessage}</p>
+                                <div>
+                                    {/* Premium Loading Header */}
+                                    <div className="flex flex-col items-center justify-center py-6 mb-4 text-center border-b border-gray-100 dark:border-gray-800">
+                                        <div className="flex items-center justify-center gap-1.5 mb-3 h-8">
+                                            <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                            <div className="w-2.5 h-2.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                            <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                        </div>
+                                        <p className="text-gray-600 dark:text-gray-300 font-medium text-sm transition-opacity duration-300 ease-in-out">{loadingMessage}</p>
+                                    </div>
+
+                                    {/* Shimmer Skeleton Body */}
+                                    <ExplanationSkeleton />
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-center text-red-500">
@@ -391,7 +432,7 @@ Fun Fact: ${data.fun_fact}
                                 <div className="space-y-6">
                                     {/* 1. Correct Answer */}
                                     {data.correct_answer && (
-                                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800/50">
+                                        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800/50 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: '100ms' }}>
                                             <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-400 mb-2 uppercase tracking-wider flex items-center gap-2">
                                                 <span>✅</span> Correct Answer
                                             </h4>
@@ -403,7 +444,7 @@ Fun Fact: ${data.fun_fact}
 
                                     {/* 2. Reasoning */}
                                     {data.reasoning && (
-                                        <div>
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: '300ms' }}>
                                             <h4 className="text-sm uppercase tracking-wider text-indigo-500 dark:text-indigo-400 font-bold mb-2 flex items-center gap-2">
                                                 <span>🧠</span> Analysis & Reasoning
                                             </h4>
@@ -415,7 +456,7 @@ Fun Fact: ${data.fun_fact}
 
                                     {/* 3. Exam Facts */}
                                     {data.exam_facts && data.exam_facts.length > 0 && (
-                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: '500ms' }}>
                                             <h4 className="text-sm font-bold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
                                                 <span className="text-lg">📚</span> Exam Special Facts (PYQs)
                                             </h4>
@@ -434,7 +475,7 @@ Fun Fact: ${data.fun_fact}
 
                                     {/* 4. Recent News */}
                                     {data.recent_news && (
-                                         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-4 border border-rose-100 dark:border-rose-800/30">
+                                         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-4 border border-rose-100 dark:border-rose-800/30 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: '700ms' }}>
                                             <h4 className="text-sm font-bold text-rose-800 dark:text-rose-400 mb-2 flex items-center gap-2">
                                                 <span className="text-lg">📰</span> Recent News & Updates
                                             </h4>
@@ -446,7 +487,7 @@ Fun Fact: ${data.fun_fact}
 
                                     {/* 5. Interesting Facts */}
                                     {data.interesting_facts && data.interesting_facts.length > 0 && (
-                                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-100 dark:border-amber-800/30">
+                                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-100 dark:border-amber-800/30 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: '900ms' }}>
                                             <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-2">
                                                 <span className="text-lg">💡</span> Did You Know?
                                             </h4>
@@ -465,7 +506,7 @@ Fun Fact: ${data.fun_fact}
 
                                      {/* 6. Fun Fact */}
                                      {data.fun_fact && (
-                                        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-900/30">
+                                        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-900/30 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both" style={{ animationDelay: '1100ms' }}>
                                             <h4 className="text-sm font-bold text-purple-800 dark:text-purple-300 mb-1 flex items-center gap-2">
                                                 <span>🎉</span> Fun Fact
                                             </h4>
@@ -477,7 +518,7 @@ Fun Fact: ${data.fun_fact}
 
                                     {/* 7. Feedback Voting */}
                                     {explanationId && (
-                                        <div className="pt-4 mt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                                        <div className="pt-4 mt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between animate-in fade-in duration-500 fill-mode-both" style={{ animationDelay: '1300ms' }}>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Was this explanation helpful?</p>
                                             <div className="flex items-center gap-2">
                                                 <button
