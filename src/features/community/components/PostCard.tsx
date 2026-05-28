@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { useAuth } from '../../auth/context/AuthContext';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -134,7 +136,7 @@ export const PostCard: React.FC<{
           <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-300 overflow-hidden">
             <PresenceAvatar
               userId={post.user_id}
-              avatarUrl={post.profiles?.avatar_url}
+              avatarUrl={getCanonicalAvatarUrl(post.profiles, null)}
               altText={post.profiles?.full_name || 'User'}
               className="w-full h-full"
             />
@@ -297,7 +299,7 @@ export const PostCard: React.FC<{
                 <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-1">
                   <PresenceAvatar
                     userId={user?.id || ''}
-                    avatarUrl={user?.user_metadata?.avatar_url || "https://api.dicebear.com/6.x/avataaars/svg?seed=fallback"}
+                    avatarUrl={getCanonicalAvatarUrl(null, user)}
                     className="w-full h-full"
                     altText="Your avatar"
                   />

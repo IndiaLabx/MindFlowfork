@@ -1,6 +1,6 @@
 export const getCanonicalAvatarUrl = (
-  profile: { avatar_url?: string | null; updated_at?: string | null } | null,
-  user: { user_metadata?: { avatar_url?: string | null, full_name?: string | null }; email?: string | null } | null,
+  profile: any | null | undefined,
+  user: any | null | undefined,
   options?: { fallbackSeed?: string }
 ): string => {
   const defaultSeed = profile?.avatar_url ? 'User' : (user?.user_metadata?.full_name || user?.email || options?.fallbackSeed || 'User');

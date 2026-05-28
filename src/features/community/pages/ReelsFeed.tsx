@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchReels, toggleLikeReel, Reel } from '../api/communityApi';
 import { useAuth } from '../../auth/context/AuthContext';
@@ -407,11 +409,7 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
       <div className="absolute bottom-0 left-0 right-16 p-4 z-10 pb-6" onClick={(e: any) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-3 cursor-pointer" onClick={() => navigate(`/u/${reel.profiles?.username || reel.user_id}`)}>
           <div className="w-10 h-10 rounded-full bg-gray-200 border border-white/20 overflow-hidden">
-            {reel.profiles?.avatar_url ? (
-              <img src={reel.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500" />
-            )}
+<PresenceAvatar userId={reel.user_id} avatarUrl={getCanonicalAvatarUrl(reel.profiles, null)} altText="Avatar" className="w-full h-full" />
           </div>
           <span className="text-white font-semibold drop-shadow-md">{reel.profiles?.full_name || reel.profiles?.username || 'MindFlow User'}</span>
           <button className="px-3 py-1 rounded-full border border-white/50 text-white text-xs font-semibold backdrop-blur-sm bg-white/10">
