@@ -3,7 +3,6 @@ import { useDebugStore } from '../../../stores/useDebugStore';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
-import defaultAvatar from '../../../assets/default-avatar.svg';
 import { syncService } from '../../../lib/syncService';
 import { db } from '../../../lib/db';
 import { AlertTriangle, LogOut, CheckCircle2 } from 'lucide-react';
@@ -225,14 +224,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       if (session?.user) {
         let finalUser = session.user;
-        // Fix for Google auth sometimes missing avatar_url in user_metadata
-        if (session.user.app_metadata.provider === 'google' && !session.user.user_metadata.avatar_url) {
-          const { data, error } = await supabase.auth.updateUser({
-            data: { avatar_url: defaultAvatar }
-          });
-          if (data.user) finalUser = data.user;
-          if (error) console.error('Error updating user metadata:', error);
-        }
+
         setUser(finalUser);
         useDebugStore.getState().logEvent('Auth state change triggered', { event, metadataAvatar: finalUser?.user_metadata?.avatar_url });
         try {

@@ -1,3 +1,13 @@
+
+const isPollutedAvatar = (url: string | null | undefined): boolean => {
+    if (!url) return true;
+    if (url.trim() === '') return true;
+    if (url.startsWith('data:image/svg+xml')) return true;
+    if (url.includes('assets/default-avatar')) return true;
+    if (url.includes('dicebear.com/7.x/avataaars/svg')) return true; // Catch previous deterministic fallbacks that might have been saved
+    return false;
+};
+
 export const getCanonicalAvatarUrl = (
   profile: any | null | undefined,
   user: any | null | undefined,
@@ -8,12 +18,12 @@ export const getCanonicalAvatarUrl = (
 
   let avatarUrl = defaultAvatar;
 
-  // 1. Prioritize profile avatar (database/storage)
-  if (profile?.avatar_url) {
+  // 1. Prioritize profile avatar (database/storage) BUT ONLY IF VALID
+  if (profile?.avatar_url && !isPollutedAvatar(profile.avatar_url)) {
     avatarUrl = profile.avatar_url;
   }
-  // 2. Fallback to auth metadata (e.g., from Google Sign-In)
-  else if (user?.user_metadata?.avatar_url) {
+  // 2. Fallback to auth metadata (e.g., from Google Sign-In) BUT ONLY IF VALID
+  else if (user?.user_metadata?.avatar_url && !isPollutedAvatar(user.user_metadata.avatar_url)) {
      avatarUrl = user.user_metadata.avatar_url;
   }
 
