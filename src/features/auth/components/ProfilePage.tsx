@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useDebugStore } from '../../../stores/useDebugStore';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
 import Cropper from 'react-easy-crop';
@@ -13,6 +14,7 @@ import { useProfileStats } from '../hooks/useProfileStats';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from "../../../stores/useNotificationStore";
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0';
 
@@ -80,34 +82,17 @@ interface ProfilePageProps {
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettings }) => {
-  const { user, signOut, refreshUser } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const { user, profile, refreshProfile, signOut, refreshUser } = useAuth();
 
-  const { data: profileData } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  useEffect(() => {
-    if (profileData) {
-      setProfile(profileData);
-    }
-  }, [profileData]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useNotificationStore();
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const tapCountRef = useRef(0);
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { toggleOpen: toggleDebug } = useDebugStore();
 
   // Cropper States
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -131,6 +116,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
 
   const handleAvatarClick = () => {
     avatarInputRef.current?.click();
+  };
+
+  const handleHiddenDebugTap = () => {
+      tapCountRef.current += 1;
+      if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = setTimeout(() => { tapCountRef.current = 0; }, 2000);
+
+      if (tapCountRef.current >= 7) {
+          toggleDebug();
+          tapCountRef.current = 0;
+      }
   };
 
   const handleAvatarUpload = async () => {
@@ -168,11 +164,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
         if (updateUserError) throw updateUserError;
 
         await refreshUser();
-
-        // Invalidate global queries to reflect new avatar everywhere
-        queryClient.invalidateQueries({ queryKey: ['profile'] });
-        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-        queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+        // Centralized refresh and invalidation
+        await refreshProfile();
         queryClient.invalidateQueries({ queryKey: ['community-search'] });
         queryClient.invalidateQueries({ queryKey: ['user-posts'] });
         queryClient.invalidateQueries({ queryKey: ['community-comments'] });
@@ -188,9 +181,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
     }
   };
   
-  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || defaultAvatar;
-  // Dynamic cache-buster for rendering
-  const displayAvatarUrl = avatarUrl !== defaultAvatar ? `${avatarUrl}?t=${Date.now()}` : avatarUrl;
+  const displayAvatarUrl = getCanonicalAvatarUrl(profile, user);
 
   const targetExam = profile?.target_exam || user?.user_metadata?.target_exam || 'Not Set';
   const fullName = profile?.full_name || user?.user_metadata?.full_name || 'Student';
@@ -258,7 +249,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut, onNavigateToSettin
             <div className="relative h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
             <div className="p-6 pb-6 text-center relative">
               
-              <div className="relative w-28 h-28 mx-auto -mt-20">
+              <div className="relative w-28 h-28 mx-auto -mt-20" onClick={handleHiddenDebugTap}>
                   <PresenceAvatar
                     userId={user?.id || ''}
                     avatarUrl={displayAvatarUrl}

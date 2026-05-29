@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useDebugStore } from '../../stores/useDebugStore';
+import { PresenceAvatar } from '../ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../../utils/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
@@ -14,7 +17,10 @@ interface SidePanelProps {
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChange }) => {
-    const { user, signOut } = useAuth();
+    const { user, profile, signOut } = useAuth();
+  useEffect(() => {
+    if (isOpen) useDebugStore.getState().logEvent('SidePanel rendered', { profileExists: !!profile });
+  }, [isOpen, user, profile]);
     const navigate = useNavigate();
 
     const handleNavigation = (path: string, tab?: string) => {
@@ -107,10 +113,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                     {user ? (
                                         <div className="flex items-center gap-4">
                                             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900/50 dark:to-indigo-800/30 p-1 shadow-inner border border-white dark:border-slate-700">
-                                                <img
-                                                    src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=\${user.user_metadata?.full_name || user.email}`}
-                                                    alt="User Avatar"
-                                                    className="w-full h-full rounded-full object-cover"
+                                                <PresenceAvatar
+                                                    userId={user.id}
+                                                    avatarUrl={getCanonicalAvatarUrl(null, user)}
+                                                    altText="User Avatar"
+                                                    className="w-full h-full"
                                                 />
                                             </div>
                                             <div className="flex-1 min-w-0">

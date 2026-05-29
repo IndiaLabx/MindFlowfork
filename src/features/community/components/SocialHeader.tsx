@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useDebugStore } from '../../../stores/useDebugStore';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +22,10 @@ const mockStories = [
 ];
 
 export const SocialHeader: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  useEffect(() => {
+    useDebugStore.getState().logEvent('SocialHeader rendered', { profileExists: !!profile });
+  }, [user, profile]);
   const navigate = useNavigate();
 
   const { data: profileUsername } = useQuery({
@@ -39,9 +44,7 @@ export const SocialHeader: React.FC = () => {
     }
   };
 
-  const userAvatar = user?.user_metadata?.avatar_url ||
-    (user ? `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}` :
-    'https://api.dicebear.com/6.x/initials/svg?seed=Guest');
+  const userAvatar = getCanonicalAvatarUrl(null, user);
 
   return (
     <div className="w-full bg-white/5 dark:bg-slate-900/5 backdrop-blur-md border-b border-indigo-100/20 dark:border-indigo-900/20 py-3 mb-4">

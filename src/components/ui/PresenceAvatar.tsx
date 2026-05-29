@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDebugStore } from '../../stores/useDebugStore';
 import { cn } from '../../utils/cn';
 
 interface PresenceAvatarProps {
