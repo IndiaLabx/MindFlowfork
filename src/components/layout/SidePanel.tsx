@@ -115,7 +115,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ isOpen, onClose, onTabChan
                                             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900/50 dark:to-indigo-800/30 p-1 shadow-inner border border-white dark:border-slate-700">
                                                 <PresenceAvatar
                                                     userId={user.id}
-                                                    avatarUrl={getCanonicalAvatarUrl(null, user)}
+                                                    avatarUrl={getCanonicalAvatarUrl(profile, user)}
                                                     altText="User Avatar"
                                                     className="w-full h-full"
                                                 />

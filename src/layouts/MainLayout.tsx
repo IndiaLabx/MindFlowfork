@@ -232,7 +232,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
                   <PresenceAvatar
                     userId={user.id}
-                    avatarUrl={getCanonicalAvatarUrl(null, user)}
+                    avatarUrl={getCanonicalAvatarUrl(profile, user)}
                     altText="User Avatar"
                     className="w-8 h-8"
                   />

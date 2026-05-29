@@ -44,7 +44,7 @@ export const SocialHeader: React.FC = () => {
     }
   };
 
-  const userAvatar = getCanonicalAvatarUrl(null, user);
+  const userAvatar = getCanonicalAvatarUrl(profile, user);
 
   return (
     <div className="w-full bg-white/5 dark:bg-slate-900/5 backdrop-blur-md border-b border-indigo-100/20 dark:border-indigo-900/20 py-3 mb-4">
