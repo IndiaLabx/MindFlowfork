@@ -57,3 +57,8 @@ export const getCanonicalAvatarUrl = (
 
   return avatarUrl;
 };
+
+export const getDeterministicFallback = (seed?: string | null): string => {
+  const safeSeed = seed || 'User';
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(safeSeed)}&backgroundColor=e2e8f0`;
+};
