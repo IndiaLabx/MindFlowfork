@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { CreatePostModal } from '../components/CreatePostModal';
 import { PostCardSkeleton } from '../components/PostCardSkeleton';
 import { PostCard } from '../components/PostCard';
-import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { ErrorBoundary } from '@/providers/ErrorBoundary';
 import { SocialHeader } from '../components/SocialHeader';
 import { ErrorState } from '../../../components/ui/ErrorState';
 

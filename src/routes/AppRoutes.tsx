@@ -5,8 +5,8 @@ import { useFlashcardStore } from '../features/quiz/stores/useFlashcardStore';
 import { QuizLayout } from '../features/quiz/QuizLayout';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
-import { ProtectedRoute } from '../components/ProtectedRoute';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ProtectedRoute } from '../providers/ProtectedRoute';
+import { ErrorBoundary } from '../providers/ErrorBoundary';
 import { useHardwareBackButton } from '../hooks/useHardwareBackButton';
 import { useNotificationStore } from '../stores/useNotificationStore';
 

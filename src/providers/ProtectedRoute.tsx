@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
-import { SynapticLoader } from './ui/SynapticLoader';
+import { SynapticLoader } from '../components/ui/SynapticLoader';
 import { RestoreAccountModal } from '../features/auth/components/RestoreAccountModal';
 
 interface ProtectedRouteProps {

@@ -18,7 +18,7 @@ import { SynapticLoader } from './components/ui/SynapticLoader';
  * @returns {JSX.Element} The mounted application.
  */
 import { PWAUpdateManager } from './components/common/PWAUpdateManager';
-import { PresenceProvider } from './components/PresenceProvider';
+import { PresenceProvider } from './providers/PresenceProvider';
 import { useAppVisibilityReawakening } from './hooks/useAppVisibilityReawakening';
 
 const AppVisibilityWrapper = () => {
