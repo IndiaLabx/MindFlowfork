@@ -146,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           onClick={() =>
             handleNavigation("card-mcqs", () => navigate("/mcqs"))
           }
-          className="relative group cursor-pointer w-full rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden mb-6 shadow-xl"
+          className="relative group cursor-pointer w-full rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden mb-6 shadow-xl isolation-isolate"
         >
           {/* Deep Premium Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-600/20 via-purple-600/10 to-fuchsia-900/40 dark:from-fuchsia-900/40 dark:via-purple-900/20 dark:to-fuchsia-950/60 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
@@ -167,7 +167,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
           ) : null}
 
           <div
-            className={`relative z-20 flex flex-col items-center justify-center h-full w-full p-8 sm:p-10 transition-opacity duration-300 ${loadingId === "card-mcqs" ? "opacity-0" : "opacity-100"}`}
+            className={`relative z-20 flex flex-col items-center justify-center h-full w-full p-8 sm:p-10 transition-opacity duration-300 transform-gpu [transform:translateZ(0)] [backface-visibility:hidden] ${loadingId === "card-mcqs" ? "opacity-0" : "opacity-100"}`}
           >
             {/* Top Area: SVG Container */}
             <motion.div
@@ -190,7 +190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToIntro }) => {
             </div>
 
             {/* Bottom Area: CTA Button */}
-            <div className="flex items-center justify-center bg-fuchsia-600 hover:bg-fuchsia-500 active:bg-fuchsia-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-[0_4px_14px_0_rgba(192,38,211,0.39)] transition-all transform hover:scale-105 active:scale-95 gap-2 backdrop-blur-sm border border-fuchsia-400/50">
+            <div className="flex items-center justify-center bg-fuchsia-600 hover:bg-fuchsia-500 active:bg-fuchsia-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-[0_4px_14px_0_rgba(192,38,211,0.39)] transition-all transform hover:scale-105 active:scale-95 gap-2 border border-fuchsia-400/50 transform-gpu [backface-visibility:hidden] [transform:translateZ(0)] will-change-transform isolation-isolate antialiased">
               <span className="text-sm sm:text-base tracking-wide">Start Practicing Now</span>
               <ChevronRight className="w-5 h-5" />
             </div>
