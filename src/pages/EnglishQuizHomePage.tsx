@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, Loader2 } from "lucide-react";
-import { IdiomsSVG, OwsSVG, SynonymsSVG } from "@/features/quiz/components/DashboardSVGs";
+import { IdiomsSVG, OwsSVG, SynonymsSVG } from "@/features/quiz";
 import { useNavSpinner } from "@/hooks/useNavSpinner";
 
 interface EnglishQuizHomeProps {

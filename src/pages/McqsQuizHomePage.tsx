@@ -4,9 +4,9 @@ import {
   CreateQuizSVG,
   SavedQuizzesSVG,
   GodModeSVG,
-} from "@/features/quiz/components/DashboardSVGs";
+} from "@/features/quiz";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/features/auth/context/AuthContext";
+import { useAuth } from "@/features/auth";
 import { useNavSpinner } from "@/hooks/useNavSpinner";
 import { Loader2, ChevronRight } from "lucide-react";
 import { MainLayout } from "@/layouts/MainLayout";

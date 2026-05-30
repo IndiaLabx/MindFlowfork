@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, ChevronRight } from "lucide-react";
-import { DownloadSVG } from "@/features/school/SchoolSVGs";
+import { DownloadSVG } from "@/features/school";
 
 export const SchoolHomePage: React.FC = () => {
   const navigate = useNavigate();

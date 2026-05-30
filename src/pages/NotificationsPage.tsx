@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ArrowRight, ExternalLink, Inbox } from 'lucide-react';
-import { useNotifications } from '@/features/notifications/hooks/useNotifications';
+import { useNotifications } from '@/features/notifications';
 import { useNotification } from '@/stores/useNotificationStore';
 import { formatDistanceToNow } from 'date-fns';
 import { isAfter } from 'date-fns';
 import { subDays } from 'date-fns';
 import { cn } from '@/utils/cn';
-import { AppNotification } from '@/features/notifications/types';
+import { AppNotification } from '@/features/notifications';
 import { useNavigate } from 'react-router-dom';
 
 const NotificationSkeleton = () => (

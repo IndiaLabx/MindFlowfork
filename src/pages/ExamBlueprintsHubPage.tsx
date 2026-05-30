@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, Play, MoreVertical, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useAuth } from '@/features/auth';
 import { supabase } from '@/lib/supabase';
-import { ExamBlueprint } from '@/features/blueprints/types/blueprint';
-import { BlueprintBuilder } from '@/features/blueprints/components/BlueprintBuilder';
+import { ExamBlueprint } from '@/features/blueprints';
+import { BlueprintBuilder } from '@/features/blueprints';
 import { useNotification } from '@/stores/useNotificationStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CookingLoader } from '@/features/quiz/components/CookingLoader';
+import { CookingLoader } from '@/features/quiz';
 
 interface ExamBlueprintsHubProps {
   onBack: () => void;

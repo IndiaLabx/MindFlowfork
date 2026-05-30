@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { AdminSVG } from "@/features/admin/components/AdminSVGs";
+import { AdminSVG } from "@/features/admin";
 import {
   McqsQuizSVG,
   EnglishZoneSVG,
@@ -9,7 +9,7 @@ import {
   BookmarksSVG,
   AboutSVG,
   DownloadSVG,
-} from "@/features/quiz/components/DashboardSVGs";
+} from "@/features/quiz";
 import {
   ListChecks,
   FileText,
@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/Button/Button";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/features/auth/context/AuthContext";
+import { useAuth } from "@/features/auth";
 import { useNavSpinner } from "@/hooks/useNavSpinner";
 import { Loader2 } from "lucide-react";
 import { useNotification } from "@/stores/useNotificationStore";
