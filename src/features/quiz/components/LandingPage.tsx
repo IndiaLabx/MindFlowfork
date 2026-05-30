@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useAuth } from '../../auth/context/AuthContext';
+import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { ClaymorphismSwitch } from './ui/ClaymorphismSwitch';
@@ -37,6 +40,7 @@ interface LandingPageProps {
  * @returns {JSX.Element} The rendered Landing Page.
  */
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginClick, user, onProfileClick, onSignOut }) => {
+  const { profile } = useAuth();
   const { canInstall, triggerInstall, installStatus } = usePWAInstall();
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,7 +167,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
               {user ? (
                 <div className="relative">
                   <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-2 cursor-pointer">
-                    <img src={user.user_metadata.avatar_url} alt="User avatar" className="w-8 h-8 rounded-full" />
+                    <PresenceAvatar userId={user.id} avatarUrl={getCanonicalAvatarUrl(profile, user)} altText="User avatar" className="w-8 h-8" />
                     <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {isProfileMenuOpen && (
@@ -369,7 +373,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginC
       </div>
 
       {/* Footer Strip / Feature Ticker */}
-      <div className="w-full border-t border-white/50 dark:border-slate-800/50 bg-white dark:bg-gray-800 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="w-full border-t border-white/50 dark:border-slate-800/50 bg-white dark:bg-gray-800 backdrop-blur-lg py-6 mt-auto pb-[calc(1.5rem_+_env(safe-area-inset-bottom))]">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center md:justify-between gap-8 text-slate-400 dark:text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mb-4">
           <div className="flex items-center gap-2 hover:text-indigo-500 transition-colors cursor-default"><Zap className="w-4 h-4" /> Instant Evaluation</div>
           <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>

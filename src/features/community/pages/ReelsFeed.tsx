@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchReels, toggleLikeReel, Reel } from '../api/communityApi';
 import { useAuth } from '../../auth/context/AuthContext';
@@ -14,6 +16,10 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { Menu, Transition } from '@headlessui/react';
 import { ShieldAlert, MoreVertical } from 'lucide-react';
 import { ReportModal } from '../components/reports/ReportModal';
+import { useDeleteReel } from '../hooks/useDeletion';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
+import { Trash2 } from 'lucide-react';
+
 import { submitReport } from '../api/reportsApi';
 import { ErrorState } from '../../../components/ui/ErrorState';
 
@@ -92,6 +98,21 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
   const queryClient = useQueryClient();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isHiddenLocally, setIsHiddenLocally] = useState(false);
+
+  const { deleteReel, isPending: isDeleting } = useDeleteReel();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!currentUser) return;
+      try {
+          await deleteReel({ id: reel.id, ownerId: currentUser.id, videoUrl: reel.video_url });
+          setIsDeleteModalOpen(false);
+          // QueryClient handles the cache removal, UI will update.
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const handleReportSubmit = async (reason: string, customNote: string) => {
     if (!currentUser) return;
@@ -218,10 +239,11 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
       {!isHiddenLocally && (
         <motion.div
           initial={{ opacity: 1, height: "100%" }}
+          animate={{ opacity: isDeleting ? 0.5 : 1 }}
           exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
           transition={{ duration: 0.3 }}
           ref={containerRef}
-          className="h-full w-full snap-start relative bg-black flex items-center justify-center cursor-pointer overflow-hidden"
+          className={cn("h-full w-full snap-start relative bg-black flex items-center justify-center cursor-pointer overflow-hidden", isDeleting && "pointer-events-none")}
           onClick={togglePlay}
         >
       {/* Background Media (Video) using Byte-Range Requests */}
@@ -321,6 +343,24 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
             >
               <Menu.Items className="absolute right-0 bottom-14 mb-2 w-48 origin-bottom-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-[60]">
                 <div className="py-1">
+                  {currentUser && currentUser.id === reel.user_id && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsDeleteModalOpen(true); }}
+                          disabled={isDeleting}
+                          className={cn(
+                            active ? 'bg-red-50 dark:bg-slate-700/50' : '',
+                            'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 font-medium disabled:opacity-50'
+                          )}
+                        >
+                          <Trash2 size={16} />
+                          {isDeleting ? 'Deleting...' : 'Delete Reel'}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  )}
+                  {currentUser && currentUser.id !== reel.user_id && (
                   <Menu.Item>
                     {({ active }) => (
                       <button
@@ -338,6 +378,7 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
                       </button>
                     )}
                   </Menu.Item>
+                  )}
                 </div>
               </Menu.Items>
             </Transition>
@@ -356,17 +397,19 @@ const ReelItem: React.FC<{ reel: Reel, currentUser: any, index: number, activeIn
             targetType="reel"
             onSubmit={handleReportSubmit}
         />
+        <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
+        />
       </div>
 
       {/* Bottom Content Area */}
       <div className="absolute bottom-0 left-0 right-16 p-4 z-10 pb-6" onClick={(e: any) => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-3 cursor-pointer" onClick={() => navigate(`/u/${reel.profiles?.username || reel.user_id}`)}>
           <div className="w-10 h-10 rounded-full bg-gray-200 border border-white/20 overflow-hidden">
-            {reel.profiles?.avatar_url ? (
-              <img src={reel.profiles.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500" />
-            )}
+<PresenceAvatar userId={reel.user_id} avatarUrl={getCanonicalAvatarUrl(reel.profiles, null)} altText="Avatar" className="w-full h-full" />
           </div>
           <span className="text-white font-semibold drop-shadow-md">{reel.profiles?.full_name || reel.profiles?.username || 'MindFlow User'}</span>
           <button className="px-3 py-1 rounded-full border border-white/50 text-white text-xs font-semibold backdrop-blur-sm bg-white/10">

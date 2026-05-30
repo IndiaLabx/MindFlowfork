@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Send, Image as ImageIcon, File, Mic, Sticker } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useNotification } from '../../../hooks/useNotification';
+import { KeyboardAwareBottomBar } from '../../../components/ui/KeyboardAwareBottomBar';
 
 interface ChatInputBarProps {
   isBlocker?: boolean;
@@ -41,17 +42,17 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
 
   if (isBlocked) {
     return (
-      <div className="p-3 bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom)] relative w-full flex items-center justify-center">
+      <KeyboardAwareBottomBar hasGlobalFooter={false} className="!px-3 !pt-2 !pb-3 bg-white border-t border-gray-100 flex items-center justify-center">
         <div className="bg-gray-100 border border-gray-200 rounded-[28px] p-3 text-center w-full text-[14px] text-gray-600 font-medium h-[52px] flex items-center justify-center">
           You cannot reply to this conversation anymore.
         </div>
-      </div>
+      </KeyboardAwareBottomBar>
     );
   }
 
   if (isBlocker) {
     return (
-      <div className="p-3 bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom)] relative w-full flex items-center justify-center gap-2">
+      <KeyboardAwareBottomBar hasGlobalFooter={false} className="!px-3 !pt-2 !pb-3 bg-white border-t border-gray-100 flex items-center justify-center gap-2">
         <div className="bg-gray-100 border border-gray-200 rounded-[28px] px-4 text-center flex-1 text-[14px] text-gray-600 font-medium h-[52px] flex items-center justify-center">
           You have blocked this user. Unblock to send a message.
         </div>
@@ -61,13 +62,14 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
         >
           Unblock
         </button>
-      </div>
+      </KeyboardAwareBottomBar>
     );
   }
 
   return (
 
-    <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom)] relative w-full">
+    <KeyboardAwareBottomBar hasGlobalFooter={false} className="!px-0 !pt-0 !pb-0 bg-transparent shadow-none border-none">
+    <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 pb-3 relative w-full">
       <div aria-live="polite" aria-atomic="true">
         {isUploading && (
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-indigo-500 animate-pulse bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-gray-100">
@@ -113,5 +115,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({ onSend, onUpload, is
         </div>
       </div>
     </form>
+    </KeyboardAwareBottomBar>
   );
 };

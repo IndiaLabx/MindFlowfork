@@ -5,6 +5,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toggleLikeComment, toggleLikeReelComment } from '../api/communityApi';
 import { cn } from '../../../utils/cn';
+import { useDeleteComment } from '../hooks/useDeletion';
+import { Trash2, Loader2, MoreVertical, Flag } from 'lucide-react';
+import { Menu, Transition } from '@headlessui/react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 
 // Helper to flatten the replies array to avoid infinite DOM recursion
@@ -31,6 +36,23 @@ const SingleComment: React.FC<{
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { showToast } = useNotificationStore();
+
+  const { deleteComment, isPending: isDeleting } = useDeleteComment(
+      isReelComment ? 'reel' : 'post',
+      isReelComment ? comment.reel_id : comment.post_id
+  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!currentUserId) return;
+      try {
+          await deleteComment({ id: comment.id, ownerId: currentUserId });
+          setIsDeleteModalOpen(false);
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const likeCommentMutation = useMutation({
     mutationFn: (currentlyLiked: boolean) =>
@@ -72,7 +94,7 @@ const SingleComment: React.FC<{
   });
 
   return (
-    <div className={cn("w-full flex items-start justify-between mb-5", isReply ? "mt-3 pl-12" : "mt-2")}>
+    <div className={cn("w-full flex items-start justify-between mb-5 transition-opacity", isReply ? "mt-3 pl-12" : "mt-2", isDeleting && "opacity-50 pointer-events-none")}>
       <div onClick={(e) => { e.stopPropagation(); navigate(`/u/${comment.profiles?.username || comment.user_id}`); }} className={cn("shrink-0 cursor-pointer", isReply ? "w-8 h-8" : "w-10 h-10")}>
         <PresenceAvatar
           userId={comment.user_id}
@@ -81,8 +103,9 @@ const SingleComment: React.FC<{
           className="w-full h-full"
         />
       </div>
-        <div className="flex-1 pr-4 ml-3 flex flex-col justify-start overflow-hidden">
-          <div className="text-[14px] leading-snug">
+        <div className="flex-1 pr-1 ml-3 flex flex-col justify-start">
+          <div className="flex justify-between items-start">
+          <div className="text-[14px] leading-snug pr-2">
             <div className="inline-flex items-center gap-1.5 mr-2">
               <span
                 className="font-bold text-gray-900 cursor-pointer hover:underline"
@@ -104,6 +127,78 @@ const SingleComment: React.FC<{
                 {comment.content}
             </div>
           </div>
+          <div className="shrink-0 pt-0.5">
+             {(comment.user_id === currentUserId) ? (
+                 <Menu as="div" className="relative">
+                    <Menu.Button className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                        <MoreVertical size={16} />
+                    </Menu.Button>
+                    <Transition
+                        as={React.Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                    >
+                        <Menu.Items className="absolute right-0 mt-1 w-40 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
+                            <div className="py-1">
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <button
+                                            onClick={() => setIsDeleteModalOpen(true)}
+                                            disabled={isDeleting}
+                                            className={cn(
+                                                active ? 'bg-red-50' : '',
+                                                'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 font-medium disabled:opacity-50'
+                                            )}
+                                        >
+                                            {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                            {isDeleting ? 'Deleting...' : 'Delete'}
+                                        </button>
+                                    )}
+                                </Menu.Item>
+                            </div>
+                        </Menu.Items>
+                    </Transition>
+                 </Menu>
+             ) : (
+                <Menu as="div" className="relative">
+                    <Menu.Button className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                        <MoreVertical size={16} />
+                    </Menu.Button>
+                    <Transition
+                        as={React.Fragment}
+                        enter="transition ease-out duration-100"
+                        enterFrom="transform opacity-0 scale-95"
+                        enterTo="transform opacity-100 scale-100"
+                        leave="transition ease-in duration-75"
+                        leaveFrom="transform opacity-100 scale-100"
+                        leaveTo="transform opacity-0 scale-95"
+                    >
+                        <Menu.Items className="absolute right-0 mt-1 w-40 origin-top-right bg-white rounded-xl shadow-lg border border-gray-100 focus:outline-none z-50">
+                            <div className="py-1">
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <button
+                                            className={cn(
+                                                active ? 'bg-gray-50' : '',
+                                                'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 font-medium'
+                                            )}
+                                            onClick={() => {}}
+                                        >
+                                            <Flag size={16} /> Report
+                                        </button>
+                                    )}
+                                </Menu.Item>
+                            </div>
+                        </Menu.Items>
+                    </Transition>
+                 </Menu>
+             )}
+          </div>
+          </div>
 
         <div className="flex items-center gap-4 mt-1.5">
           <span className="text-[12px] text-gray-500 font-medium">
@@ -111,10 +206,22 @@ const SingleComment: React.FC<{
           </span>
           <button
             onClick={() => onReply(comment.id, comment.profiles?.username || comment.profiles?.full_name || 'User')}
-            className="text-[12px] text-gray-500 font-semibold hover:text-gray-900 transition-colors"
+            disabled={isDeleting}
+            className="text-[12px] text-gray-500 font-semibold hover:text-gray-900 transition-colors disabled:opacity-50"
           >
             Reply
           </button>
+
+
+
+          <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
+            title="Delete Comment"
+            message="Are you sure you want to delete this comment?"
+          />
         </div>
       </div>
 
@@ -131,6 +238,7 @@ const SingleComment: React.FC<{
         {(comment.likes_count || 0) > 0 && (
           <span className="text-[10px] font-semibold text-gray-500 mt-0.5">{comment.likes_count}</span>
         )}
+
       </div>
     </div>
   );

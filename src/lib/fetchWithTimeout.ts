@@ -14,14 +14,17 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
   const reqId = `req_${++requestIdCounter}`;
   const urlStr = url.toString();
 
-  console.log(`[Diagnostic] [${reqId}] fetchWithTimeout START: ${urlStr}`);
+  // Conditionally expand timeout for AI Tutor generation which involves long-running Google Search grounding.
+  if (urlStr.includes('/functions/v1/ask-ai-tutor')) {
+      timeoutMs = 45000;
+  }
+
 
   // Combine an existing signal (if any) with our timeout signal
   const existingSignal = options?.signal;
 
   if (existingSignal) {
-      console.log(`[Diagnostic] [${reqId}] existingSignal present. aborted pre-flight: ${existingSignal.aborted}`);
-  }
+        }
 
   let timeoutSignal: AbortSignal;
   if (typeof AbortSignal.timeout === 'function') {
@@ -29,8 +32,7 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
   } else {
       const controller = new AbortController();
       setTimeout(() => {
-          console.log(`[Diagnostic] [${reqId}] manual timeout fired after ${timeoutMs}ms`);
-          controller.abort(new Error('TimeoutError'));
+                    controller.abort(new Error('TimeoutError'));
       }, timeoutMs);
       timeoutSignal = controller.signal;
   }
@@ -45,29 +47,24 @@ export const fetchWithTimeout = (url: RequestInfo | URL, options?: RequestInit, 
           const combinedController = new AbortController();
 
           const onAbort = () => {
-             console.log(`[Diagnostic] [${reqId}] combinedController onAbort triggered. existing: ${existingSignal.aborted}, timeout: ${timeoutSignal.aborted}`);
-             combinedController.abort();
+                          combinedController.abort();
           }
           existingSignal.addEventListener('abort', onAbort);
           timeoutSignal.addEventListener('abort', onAbort);
 
           if (existingSignal.aborted || timeoutSignal.aborted) {
-              console.log(`[Diagnostic] [${reqId}] Pre-aborted before listener attach. existing: ${existingSignal?.aborted}, timeout: ${timeoutSignal.aborted}`);
-              combinedController.abort();
+                            combinedController.abort();
           }
           finalSignal = combinedController.signal;
       }
   }
 
-  console.log(`[Diagnostic] [${reqId}] calling native fetch. finalSignal aborted pre-flight: ${finalSignal.aborted}`);
 
   return fetch(url, { ...options, signal: finalSignal })
     .then(res => {
-        console.log(`[Diagnostic] [${reqId}] fetch RESOLVED with status ${res.status}`);
-        return res;
+                return res;
     })
     .catch(err => {
-        console.log(`[Diagnostic] [${reqId}] fetch REJECTED. Error: ${err.message}, finalSignal.aborted: ${finalSignal.aborted}`);
-        throw err;
+                throw err;
     });
 };

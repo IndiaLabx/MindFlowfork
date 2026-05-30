@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchUserRooms, fetchMessages, sendMessage, uploadChatMedia, ChatRoom, ChatMessage } from '../api/chatApi';
 import { useAuth } from '../../auth/context/AuthContext';
@@ -34,9 +35,9 @@ export const ChatRooms: React.FC = () => {
 
   // Clear location state after capturing so refresh doesn't auto-open it
   useEffect(() => {
-    document.body.classList.add('hide-bottom-nav');
+
     return () => {
-      document.body.classList.remove('hide-bottom-nav');
+
     };
   }, []);
   useEffect(() => {
@@ -63,14 +64,14 @@ export const ChatRooms: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto pb-32 px-4">
+    <div className="flex flex-col w-full max-w-2xl mx-auto pb-[env(safe-area-inset-bottom)] px-4">
       <div className="flex items-center gap-3 mb-6 mt-4"><button onClick={() => navigate('/community')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800"><ArrowLeft size={24} /></button><h2 className="text-2xl font-bold text-gray-900">Messages</h2></div>
       <div className="space-y-2">
         {rooms?.map(room => {
           // For direct chats, find the other person
           const otherParticipant = room.participants?.find(p => p.user_id !== user?.id);
           const title = room.type === 'direct' ? otherParticipant?.full_name || 'Unknown User' : 'Group Chat';
-          const avatar = room.type === 'direct' ? otherParticipant?.avatar_url : null;
+          const avatar = room.type === 'direct' ? getCanonicalAvatarUrl(otherParticipant, null) : null;
 
           return (
             <motion.button
@@ -83,7 +84,7 @@ export const ChatRooms: React.FC = () => {
               <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 shadow-sm">
                 <PresenceAvatar
                   userId={otherParticipant?.user_id || ''}
-                  avatarUrl={otherParticipant?.avatar_url}
+                  avatarUrl={getCanonicalAvatarUrl(otherParticipant, null)}
                   altText={otherParticipant?.full_name || 'User'}
                   className="w-full h-full"
                 />
@@ -311,7 +312,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white flex flex-col w-full md:relative md:h-[calc(100vh-70px)] md:max-w-2xl md:mx-auto md:border-x md:border-gray-100 md:shadow-sm">
+    <div className="fixed inset-0 z-[100] bg-white flex flex-col w-full md:relative md:h-[100dvh] md:max-w-2xl md:mx-auto md:border-x md:border-gray-100 md:shadow-sm">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-10">
         <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-800" aria-label="Go back">
@@ -320,7 +321,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
         <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm">
              <PresenceAvatar
                 userId={otherParticipant?.user_id || ''}
-                avatarUrl={otherParticipant?.avatar_url}
+                avatarUrl={getCanonicalAvatarUrl(otherParticipant, null)}
                 altText={otherParticipant?.full_name || 'User'}
                 className="w-full h-full"
              />
@@ -481,7 +482,7 @@ const ActiveChatRoom: React.FC<{ room: ChatRoom; onBack: () => void }> = ({ room
                   isMine={isMine}
                   showTimeSeparator={showTimeSeparator}
                   timeSeparatorText={timeSeparatorText}
-                  otherParticipantAvatar={otherParticipant?.avatar_url}
+                  otherParticipantAvatar={getCanonicalAvatarUrl(otherParticipant, null)}
                   onLikeToggle={handleLikeToggle}
                 />
               );

@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { useAuth } from '../../auth/context/AuthContext';
+import { getCanonicalAvatarUrl } from '../../../utils/avatar';
 import { PresenceAvatar } from '../../../components/ui/PresenceAvatar';
 import { PresenceDot } from '../../../components/ui/PresenceDot';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +12,10 @@ import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { Menu, Transition } from '@headlessui/react';
 import { ShieldAlert } from 'lucide-react';
 import { ReportModal } from './reports/ReportModal';
+import { useDeletePost } from '../hooks/useDeletion';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { Trash2, Loader2 } from 'lucide-react';
+
 import { submitReport } from '../api/reportsApi';
 
 export const PostCard: React.FC<{
@@ -26,6 +32,21 @@ export const PostCard: React.FC<{
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [isHiddenLocally, setIsHiddenLocally] = useState(false);
+
+  const { deletePost, isPending: isDeleting } = useDeletePost();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+      if (!user) return;
+      try {
+          await deletePost({ id: post.id, ownerId: user.id });
+          setIsDeleteModalOpen(false);
+          // QueryClient handles the cache removal, UI will update.
+      } catch (err) {
+          // Error handled by hook toast
+      }
+  };
+
 
   const handleReportSubmit = async (reason: string, customNote: string) => {
     if (!user) return;
@@ -107,15 +128,15 @@ export const PostCard: React.FC<{
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-white backdrop-blur-xl border border-gray-200 rounded-3xl p-4 mb-6 shadow-sm"
+      animate={{ opacity: isDeleting ? 0.5 : 1, y: 0 }}
+      className={cn("w-full bg-white backdrop-blur-xl border border-gray-200 rounded-3xl p-4 mb-6 shadow-sm", isDeleting && "pointer-events-none")}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/u/${post.profiles?.username || post.user_id}`); }}>
           <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-300 overflow-hidden">
             <PresenceAvatar
               userId={post.user_id}
-              avatarUrl={post.profiles?.avatar_url}
+              avatarUrl={getCanonicalAvatarUrl(post.profiles, null)}
               altText={post.profiles?.full_name || 'User'}
               className="w-full h-full"
             />
@@ -146,6 +167,24 @@ export const PostCard: React.FC<{
           >
             <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 focus:outline-none z-50">
               <div className="py-1">
+                {user && user.id === post.user_id && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsDeleteModalOpen(true); }}
+                          disabled={isDeleting}
+                          className={cn(
+                            active ? 'bg-red-50 dark:bg-slate-700/50' : '',
+                            'flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 font-medium disabled:opacity-50'
+                          )}
+                        >
+                          <Trash2 size={16} />
+                          {isDeleting ? 'Deleting...' : 'Delete Post'}
+                        </button>
+                      )}
+                    </Menu.Item>
+                )}
+                {user && user.id !== post.user_id && (
                 <Menu.Item>
                   {({ active }) => (
                     <button
@@ -160,6 +199,7 @@ export const PostCard: React.FC<{
                     </button>
                   )}
                 </Menu.Item>
+                )}
               </div>
             </Menu.Items>
           </Transition>
@@ -171,6 +211,12 @@ export const PostCard: React.FC<{
             targetName={post.profiles?.full_name || 'Post'}
             targetType="post"
             onSubmit={handleReportSubmit}
+        />
+        <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDeleteConfirm}
+            isDeleting={isDeleting}
         />
       </div>
 
@@ -248,30 +294,38 @@ export const PostCard: React.FC<{
             className="mt-4 pt-4 border-t border-gray-100 overflow-hidden"
             onSubmit={handleCommentSubmit}
           >
-            <div className="flex gap-2 items-center">
-              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-0.5">
-                <PresenceAvatar
-                  userId={user?.id || ''}
-                  avatarUrl={user?.user_metadata?.avatar_url || "https://api.dicebear.com/6.x/avataaars/svg?seed=fallback"}
-                  className="w-full h-full"
-                  altText="Your avatar"
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3 items-start">
+                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-1">
+                  <PresenceAvatar
+                    userId={user?.id || ''}
+                    avatarUrl={getCanonicalAvatarUrl(null, user)}
+                    className="w-full h-full"
+                    altText="Your avatar"
+                  />
+                </div>
+                <textarea
+                  value={commentText}
+                  onChange={(e) => {
+                    setCommentText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  placeholder="Add a comment..."
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none min-h-[44px] max-h-[120px]"
+                  rows={1}
+                  disabled={commentMutation.isPending}
                 />
               </div>
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a comment..."
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                disabled={commentMutation.isPending}
-              />
-              <button
-                type="submit"
-                disabled={!commentText.trim() || commentMutation.isPending}
-                className="p-2 rounded-full bg-indigo-600 text-white disabled:opacity-50"
-               aria-label="Submit search">
-                <Send size={18} />
-              </button>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!commentText.trim() || commentMutation.isPending}
+                  className="px-6 py-2 rounded-full bg-indigo-600 text-white font-medium text-sm disabled:opacity-50 transition-opacity flex items-center gap-2"
+                  aria-label="Submit comment">
+                  {commentMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <><Send size={14} /> Post Comment</>}
+                </button>
+              </div>
             </div>
           </motion.form>
         )}

@@ -1,4 +1,8 @@
 import React, { useContext, useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { HydrationDebugger } from '../components/debug/HydrationDebugger';
+import { useDebugStore } from '../stores/useDebugStore';
+import { PresenceAvatar } from '../components/ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Home, LayoutDashboard, GraduationCap, PlusCircle, User, Settings, LogIn, Sun, Moon, Brain, Menu, Search, Play, MessageSquare, ArrowLeft, Users } from 'lucide-react';
@@ -49,13 +53,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onTabChange,
   onOpenSettings 
 }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  useEffect(() => {
+    useDebugStore.getState().logEvent('MainLayout rendered', { profileExists: !!profile, metadataUrl: user?.user_metadata?.avatar_url });
+  }, [user, profile]);
   const { isReviewMode } = useQuizContext();
   const { isDarkMode, toggleDarkMode } = useSettingsStore();
   const { isSocialMode, toggleSocialMode } = useSocialStore();
   const location = useLocation();
   const isAIFullScreen = location.pathname.startsWith('/ai/chat') || location.pathname.startsWith('/ai/talk') || location.pathname.startsWith('/tools/text-exporter') || location.pathname.startsWith('/tools/flashcard-maker');
   const isReelsFullScreen = location.pathname.startsWith('/community/reels');
+  const isMessagingFullScreen = location.pathname.startsWith('/messages');
 
   // Auto toggle based on pathname if user lands directly on a social route
   useEffect(() => {
@@ -184,7 +192,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div className={cn(
         "flex flex-col transition-colors duration-700 relative bg-gradient-to-br from-indigo-50 via-purple-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 animate-flow",
-        isAIFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : isReelsFullScreen ? "h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] w-screen overflow-hidden fixed top-0 left-0" : "min-h-screen"
+        isAIFullScreen || isMessagingFullScreen ? "h-[100dvh] w-screen overflow-hidden fixed inset-0" : isReelsFullScreen ? "h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] w-screen overflow-hidden fixed top-0 left-0" : "min-h-screen"
     )}>
       
       {/* --- Sticky Top Header --- */}
@@ -222,10 +230,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               <div className="flex items-center gap-2">
                 <NotificationBell />
                 <button onClick={() => onTabChange('profile')} className="rounded-full transition-opacity duration-200 hover:opacity-80">
-                  <img
-                    src={user.user_metadata?.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.user_metadata?.full_name || user.email}`}
-                    alt="User Avatar"
-                    className="w-8 h-8 rounded-full"
+                  <PresenceAvatar
+                    userId={user.id}
+                    avatarUrl={getCanonicalAvatarUrl(profile, user)}
+                    altText="User Avatar"
+                    className="w-8 h-8"
                   />
                 </button>
               </div>
@@ -256,13 +265,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       )}>
         {children}
       </main>
+      <HydrationDebugger />
 
       {/* --- Sticky Bottom Tab Bar --- */}
 
       <nav className={cn(
         "main-layout-nav",
-        "fixed bottom-0 left-0 w-full z-[10000] transition-colors duration-300 pb-[env(safe-area-inset-bottom)] group overflow-visible",
-        isReviewMode || isAIFullScreen ? "hidden" : "block"
+        "fixed bottom-0 left-0 w-full z-[10000] transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pt-2 group overflow-visible",
+        isReviewMode || isAIFullScreen || isMessagingFullScreen ? 'hidden' : 'block'
       )}>
         {/* Glow Background Layer */}
         <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
