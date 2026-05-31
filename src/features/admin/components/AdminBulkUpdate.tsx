@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Database, Filter, Plus, Trash2, Search, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { useFetchQuestionsCountByFilter, usePerformBulkUpdate } from '../hooks/useAdminBulkUpdate';
 import { useNotification } from '../../../hooks/useNotification';
 
 const FIELDS = [
@@ -31,6 +31,8 @@ interface FilterCondition {
 
 export const AdminBulkUpdate: React.FC = () => {
     const { showToast } = useNotification();
+    const fetchCountMutation = useFetchQuestionsCountByFilter();
+    const bulkUpdateMutation = usePerformBulkUpdate();
 
     // Target Update State
     const [targetField, setTargetField] = useState('subject');
@@ -82,60 +84,39 @@ export const AdminBulkUpdate: React.FC = () => {
     };
 
     const handlePreview = async () => {
-        if (filters.length === 0 || filters.some(f => !f.field || f.value === '')) {
-            showToast({ title: 'Invalid Filters', message: 'Please complete all filter conditions.', variant: 'error' });
-            return;
-        }
-
         setIsPreviewLoading(true);
         setAffectedRows(null);
         try {
-            const query = supabase.from('questions').select('*', { count: 'exact', head: true });
-            const { count, error } = await buildQuery(query);
-
-            if (error) throw error;
-            setAffectedRows(count || 0);
-
-            if (count === 0) {
-                 showToast({ title: 'No Match', message: 'No questions match the current filters.', variant: 'info' });
-            }
+            const count = await fetchCountMutation.mutateAsync(filters);
+            setAffectedRows(count);
         } catch (error: any) {
-            console.error('Preview error:', error);
-            showToast({ title: 'Preview Failed', message: error.message, variant: 'error' });
+            console.error("Preview error", error);
+            showToast({ variant: 'error', message: error.message || 'Failed to fetch preview' });
         } finally {
             setIsPreviewLoading(false);
         }
     };
 
     const handleUpdate = async () => {
-        if (affectedRows === null || affectedRows === 0) return;
         if (!targetField) {
-             showToast({ title: 'Missing Target', message: 'Please select a field to update.', variant: 'error' });
-             return;
+            showToast({ variant: 'error', message: 'Target field is required' });
+            return;
         }
 
-        const confirmed = window.confirm(`Are you sure you want to update ${affectedRows} questions? This action cannot be undone easily.`);
+        const confirmed = window.confirm(`Are you sure you want to update ${affectedRows} rows?`);
         if (!confirmed) return;
 
         setIsUpdating(true);
         try {
-            const updatePayload = { [targetField]: targetValue };
-            const query = supabase.from('questions').update(updatePayload);
-            const { data, error } = await buildQuery(query).select();
-
-            if (error) throw error;
-
-            showToast({
-                title: 'Update Successful',
-                message: `Successfully updated ${data?.length || affectedRows} questions.`,
-                variant: 'success'
-            });
-
+            const data = await bulkUpdateMutation.mutateAsync({ filters, targetField, targetValue });
+            showToast({ variant: 'success', message: `Successfully updated ${data.length} rows` });
             setAffectedRows(null);
+
+            // clear target val
             setTargetValue('');
         } catch (error: any) {
-            console.error('Update error:', error);
-            showToast({ title: 'Update Failed', message: error.message, variant: 'error' });
+            console.error("Update error", error);
+            showToast({ variant: 'error', message: error.message || 'Failed to update' });
         } finally {
             setIsUpdating(false);
         }

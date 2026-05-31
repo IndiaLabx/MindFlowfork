@@ -2,23 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Trash2, FileText, Loader2, Search } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAdminMaterials, useDeleteMaterial } from '../hooks/useAdminMaterials';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { AdminEditMaterialModal, StudyMaterial } from '@/features/admin/components/AdminEditMaterialModal';
-import { deleteStudyMaterial } from '@/features/quiz/utils/adminMaterialUtils';
+
 
 export const AdminManageMaterials: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { showToast } = useNotificationStore();
 
-    const [materials, setMaterials] = useState<StudyMaterial[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+
+    const { data: materials = [], isLoading } = useAdminMaterials();
     const [searchQuery, setSearchQuery] = useState('');
 
     const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const deleteMutation = useDeleteMaterial();
 
     // Strict Guard
     useEffect(() => {
@@ -27,27 +28,9 @@ export const AdminManageMaterials: React.FC = () => {
         }
     }, [user, navigate]);
 
-    useEffect(() => {
-        fetchMaterials();
-    }, []);
 
-    const fetchMaterials = async () => {
-        setIsLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('study_materials')
-                .select('*')
-                .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            setMaterials((data as StudyMaterial[]) || []);
-        } catch (error) {
-            console.error("Error fetching materials:", error);
-            showToast({ title: "Error", message: "Failed to load materials.", variant: "error" });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+
 
     const handleDelete = async (material: StudyMaterial) => {
         const confirmed = window.confirm(`Are you sure you want to delete "${material.title}"?\nThis will remove the database record and the actual PDF file from the bucket.`);
@@ -55,8 +38,8 @@ export const AdminManageMaterials: React.FC = () => {
 
         setDeletingId(material.id);
         try {
-            await deleteStudyMaterial(material.id, material.file_url);
-            setMaterials(prev => prev.filter(m => m.id !== material.id));
+            await deleteMutation.mutateAsync({ id: material.id, fileUrl: material.file_url });
+            {/* React Query invalidation */}
             showToast({ title: "Deleted", message: "Material successfully deleted.", variant: "success" });
         } catch (error: any) {
             showToast({ title: "Error", message: error.message || "Failed to delete material.", variant: "error" });
@@ -172,7 +155,7 @@ export const AdminManageMaterials: React.FC = () => {
                 material={editingMaterial}
                 onClose={() => setEditingMaterial(null)}
                 onSuccess={ (updated: any)  => {
-                    setMaterials(prev => prev.map(m => m.id === updated.id ? updated : m));
+                    {/* React Query invalidation */}
                 }}
             />
         </div>

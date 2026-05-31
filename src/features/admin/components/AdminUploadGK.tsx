@@ -6,7 +6,7 @@ import {
     XCircle, AlertTriangle, Loader2, Save, Trash2, Settings, Pencil
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/context/AuthContext';
-import { supabase } from '../../../lib/supabase';
+import { useFetchQuestionsByIds, useInsertQuestions, useFetchQuestionByV1Id, useUpdateQuestion } from '../hooks/useAdminUploadGK';
 import { useNotification } from '../../../hooks/useNotification';
 import { AdminBulkUpdate } from './AdminBulkUpdate';
 
@@ -48,6 +48,10 @@ export const AdminUploadGK: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { showToast } = useNotification();
+    const fetchIdsMutation = useFetchQuestionsByIds();
+    const insertMutation = useInsertQuestions();
+    const fetchEditMutation = useFetchQuestionByV1Id();
+    const updateMutation = useUpdateQuestion();
 
     // Auth Guard
     useEffect(() => {
@@ -161,6 +165,10 @@ export const AdminUploadGK: React.FC = () => {
 // ==========================================
 const SingleUpload: React.FC = () => {
     const { showToast } = useNotification();
+    const fetchIdsMutation = useFetchQuestionsByIds();
+    const insertMutation = useInsertQuestions();
+    const fetchEditMutation = useFetchQuestionByV1Id();
+    const updateMutation = useUpdateQuestion();
     const [formData, setFormData] = useState<QuestionForm>(() => {
         const saved = localStorage.getItem('gk_upload_draft');
         return saved ? JSON.parse(saved) : defaultForm;
@@ -185,13 +193,7 @@ const SingleUpload: React.FC = () => {
             }
             setIsCheckingV1Id(true);
             try {
-                const { data, error } = await supabase
-                    .from('questions')
-                    .select('v1_id')
-                    .eq('v1_id', formData.v1_id)
-                    .limit(1);
-
-                if (error) throw error;
+                const data = await fetchIdsMutation.mutateAsync([formData.v1_id]);
                 setV1IdStatus(data && data.length > 0 ? 'taken' : 'available');
             } catch (err) {
                 console.error("Error checking v1_id:", err);
@@ -285,8 +287,7 @@ const SingleUpload: React.FC = () => {
         };
 
         try {
-            const { error } = await supabase.from('questions').insert([payload]);
-            if (error) throw error;
+            await insertMutation.mutateAsync([payload]);
 
             showToast({ title: 'Success', message: 'Question uploaded successfully.', variant: 'success' });
             setFormData(defaultForm);
@@ -453,6 +454,10 @@ const SingleUpload: React.FC = () => {
 // ==========================================
 const BulkUpload: React.FC = () => {
     const { showToast } = useNotification();
+    const fetchIdsMutation = useFetchQuestionsByIds();
+    const insertMutation = useInsertQuestions();
+    const fetchEditMutation = useFetchQuestionByV1Id();
+    const updateMutation = useUpdateQuestion();
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -561,12 +566,7 @@ const BulkUpload: React.FC = () => {
 
             // 2. Duplicate v1_id Check (Supabase)
             if (currentErrors.length === 0 && v1IdsToFetch.length > 0) {
-                const { data, error } = await supabase
-                    .from('questions')
-                    .select('v1_id')
-                    .in('v1_id', v1IdsToFetch);
-
-                if (error) throw error;
+                const data = await fetchIdsMutation.mutateAsync(v1IdsToFetch);
 
                 if (data && data.length > 0) {
                     const existingIds = data.map(d => d.v1_id);
@@ -602,8 +602,7 @@ const BulkUpload: React.FC = () => {
         setIsUploading(true);
         try {
             // Batch insert
-            const { error } = await supabase.from('questions').insert(previewData);
-            if (error) throw error;
+            await insertMutation.mutateAsync(previewData);
 
             showToast({ title: 'Success', message: `Successfully uploaded ${previewData.length} questions.`, variant: 'success' });
             setFile(null);
@@ -701,6 +700,10 @@ const BulkUpload: React.FC = () => {
 // ==========================================
 const EditQuestion: React.FC = () => {
     const { showToast } = useNotification();
+    const fetchIdsMutation = useFetchQuestionsByIds();
+    const insertMutation = useInsertQuestions();
+    const fetchEditMutation = useFetchQuestionByV1Id();
+    const updateMutation = useUpdateQuestion();
     const [searchId, setSearchId] = useState('');
     const [isSearching, setIsSearching] = useState(false);
 
@@ -726,16 +729,9 @@ const EditQuestion: React.FC = () => {
         setIsSearching(true);
         setFormData(null);
         try {
-            const { data, error } = await supabase
-                .from('questions')
-                .select('*')
-                .eq('v1_id', searchId.trim())
-                .limit(1);
+            const q = await fetchEditMutation.mutateAsync(searchId.trim());
 
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                const q = data[0];
+            if (q) {
                 setFormData({
                     v1_id: q.v1_id,
                     subject: q.subject || '',
@@ -827,12 +823,7 @@ const EditQuestion: React.FC = () => {
         };
 
         try {
-            const { error } = await supabase
-                .from('questions')
-                .update(payload)
-                .eq('v1_id', formData.v1_id);
-
-            if (error) throw error;
+            await updateMutation.mutateAsync(payload);
 
             showToast({ title: 'Success', message: 'Question updated successfully.', variant: 'success' });
             setFormData(null); // Clear form after success
