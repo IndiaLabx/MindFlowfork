@@ -13,7 +13,7 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { useSocialStore } from '@/features/community';
 import { ClaymorphismSwitch } from '../features/quiz/components/ui/ClaymorphismSwitch';
 import { NotificationBell } from '../features/notifications/components/NotificationBell';
-import { SidePanel } from '../components/layout/SidePanel';
+import { SidePanel } from './SidePanel';
 
 
 /**

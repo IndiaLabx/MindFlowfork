@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
-import { useDebugStore } from '../../stores/useDebugStore';
-import { PresenceAvatar } from '../ui/PresenceAvatar';
-import { getCanonicalAvatarUrl } from '../../utils/avatar';
+import { useDebugStore } from '../stores/useDebugStore';
+import { PresenceAvatar } from '../components/ui/PresenceAvatar';
+import { getCanonicalAvatarUrl } from '../utils/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, User, LogIn, Home, LayoutDashboard, Languages,
     Wrench, Download, Info, GraduationCap, FileText, Shield, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../features/auth/context/AuthContext';
+import { useAuth } from '../features/auth/context/AuthContext';
 
 interface SidePanelProps {
     isOpen: boolean;
