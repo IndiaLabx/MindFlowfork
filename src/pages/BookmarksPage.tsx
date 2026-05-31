@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Star, Trash2, LibraryBig, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/db';
-import { Question } from '@/features/quiz/types';
+import { Question } from '@/features/quiz';
 import { Button } from '@/components/Button/Button';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';

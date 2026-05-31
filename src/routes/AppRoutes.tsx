@@ -1,9 +1,9 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { QuizProvider, useQuizContext } from '../features/quiz/context/QuizContext';
-import { useFlashcardStore } from '../features/quiz/stores/useFlashcardStore';
-import { QuizLayout } from '../features/quiz/QuizLayout';
-import { useAuth } from '../features/auth/context/AuthContext';
+import { QuizProvider, useQuizContext } from '@/features/quiz';
+import { useFlashcardStore } from '@/features/quiz';
+import { QuizLayout } from '@/features/quiz';
+import { useAuth } from '@/features/auth';
 import { SynapticLoader } from '../components/ui/SynapticLoader';
 import { ProtectedRoute } from '../providers/ProtectedRoute';
 import { ErrorBoundary } from '../providers/ErrorBoundary';
@@ -97,12 +97,12 @@ const SupportPage = lazy(() => import('../features/auth/components/SupportPage')
  *
  * Maps URL paths to components and connects navigation actions from the `useQuizContext` hook.
  */
-import { AppPreferencesPage } from '../features/settings/components/AppPreferencesPage';
-import { MyReportsPage } from '../features/settings/components/MyReportsPage';
-import { QuizSessionGuard } from '../features/quiz/components/QuizSessionGuard';
-import { ResultGuard } from '../features/quiz/components/ResultGuard';
+import { AppPreferencesPage } from '@/features/settings';
+import { MyReportsPage } from '@/features/settings';
+import { QuizSessionGuard } from '@/features/quiz';
+import { ResultGuard } from '@/features/quiz';
 import { supabase } from '../lib/supabase';
-import { ShareGatekeeper } from '../features/quiz/components/ShareGatekeeper';
+import { ShareGatekeeper } from '@/features/quiz';
 
 const AppRoutesContent: React.FC = () => {
     // Destructure all necessary state and actions from the global store

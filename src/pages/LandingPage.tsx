@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useAuth } from '@/features/auth';
 import { PresenceAvatar } from '@/components/ui/PresenceAvatar';
 import { getCanonicalAvatarUrl } from '@/utils/avatar';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { ArrowRight, Brain, Zap, Layers, Star, Play, Github, Download, Target, User as UserIcon, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
-import { ClaymorphismSwitch } from '@/features/quiz/components/ui/ClaymorphismSwitch';
+import { ClaymorphismSwitch } from '@/features/quiz';
 import { Button } from '@/components/Button/Button';
-import { Typewriter } from '@/features/quiz/components/Landing/Typewriter';
-import { DemoCard } from '@/features/quiz/components/Landing/DemoCard';
-import { MobileDemoCard } from '@/features/quiz/components/Landing/MobileDemoCard';
+import { Typewriter } from '@/features/quiz';
+import { DemoCard } from '@/features/quiz';
+import { MobileDemoCard } from '@/features/quiz';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import InstallPwaModal from '@/components/common/InstallPwaModal';
 import type { User } from '@supabase/supabase-js';
 import founderImage from '@/assets/aalok.jpg';
-import { CinematicIntro } from '@/features/quiz/components/Landing/CinematicIntro';
-import { MobileOnboarding } from '@/features/quiz/components/Landing/MobileOnboarding';
-import { WelcomeIntro } from '@/features/quiz/components/Landing/WelcomeIntro';
+import { CinematicIntro } from '@/features/quiz';
+import { MobileOnboarding } from '@/features/quiz';
+import { WelcomeIntro } from '@/features/quiz';
 
 interface LandingPageProps {
   onGetStarted: () => void;
