@@ -96,6 +96,26 @@ export const AdminHomePage: React.FC = () => {
                     </div>
                 </motion.div>
 
+                {/* Upload OWS Button */}
+                <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/admin/upload-ows')}
+                    className="relative group cursor-pointer rounded-3xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-2xl">
+                            <Upload className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Upload OWS</h2>
+                            <p className="text-sm text-slate-500 mt-1">Add One Word Substitutions to the DB (Single & Bulk).</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+
                 {/* Upload Database Button */}
                 <motion.div
                     whileHover={{ scale: 1.02 }}

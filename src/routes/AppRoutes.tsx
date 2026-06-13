@@ -46,6 +46,7 @@ const AdminReportsQueue = lazy(() => import('../features/admin/components/AdminR
 const AdminHomePage = lazy(() => import('../pages/AdminHomePage').then(m => ({ default: m.AdminHomePage })));
 const AdminManageMaterials = lazy(() => import('../features/admin/components/AdminManageMaterials').then(m => ({ default: m.AdminManageMaterials })));
 const AdminUploadGK = lazy(() => import("../features/admin/components/AdminUploadGK").then(m => ({ default: m.AdminUploadGK })));
+const AdminUploadOWS = lazy(() => import("../features/admin/components/AdminUploadOWS").then(m => ({ default: m.AdminUploadOWS })));
 const AdminUploadMaterials = lazy(() => import('../features/admin/components/AdminUploadMaterials').then(m => ({ default: m.AdminUploadMaterials })));
 const AdminNotifications = lazy(() => import('../features/notifications/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
@@ -538,6 +539,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                                         <Route path="/admin/materials" element={<Suspense fallback={<SynapticLoader />}><AdminManageMaterials /></Suspense>} />
                     <Route path="/admin/upload" element={<Suspense fallback={<SynapticLoader />}><AdminUploadMaterials /></Suspense>} />
                     <Route path="/admin/uploadgk" element={<Suspense fallback={<SynapticLoader />}><AdminUploadGK /></Suspense>} />
+                    <Route path="/admin/upload-ows" element={<Suspense fallback={<SynapticLoader />}><AdminUploadOWS /></Suspense>} />
               <Route path="/admin/notifications" element={
             <Suspense fallback={<div className="flex h-screen items-center justify-center"><SynapticLoader size="md" /></div>}>
               <AdminNotifications />

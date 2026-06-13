@@ -5,3 +5,5 @@ export * from './AdminBulkUpdate';
 export * from './AdminSVGs';
 export * from './AdminReportsQueue';
 export * from './AdminEditMaterialModal';
+export * from './AdminBulkUpdateOWS';
+export * from './AdminUploadOWS';
