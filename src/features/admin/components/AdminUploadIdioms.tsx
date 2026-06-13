@@ -205,7 +205,8 @@ export const AdminUploadIdioms: React.FC = () => {
                 source_pdf: data.source_pdf || '',
                 exam_year: data.exam_year ? data.exam_year.toString() : '',
                 difficulty: data.difficulty || 'Medium',
-                status: data.status || 'active'
+                status: data.status || 'active',
+                image_url: data.image_url || ''
             });
             showToast({ title: "Found", message: "Idiom loaded for editing.", variant: "success" });
         } catch (error: any) {
