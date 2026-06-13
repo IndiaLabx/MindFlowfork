@@ -5,3 +5,6 @@ export * from './hooks/useAdminUploadGK';
 export * from './api/adminOwsApi';
 export * from './hooks/useAdminBulkUpdateOWS';
 export * from './hooks/useAdminUploadOWS';
+export * from './api/adminIdiomsApi';
+export * from './hooks/useAdminBulkUpdateIdioms';
+export * from './hooks/useAdminUploadIdioms';

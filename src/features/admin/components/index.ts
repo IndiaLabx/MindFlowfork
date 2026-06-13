@@ -7,3 +7,5 @@ export * from './AdminReportsQueue';
 export * from './AdminEditMaterialModal';
 export * from './AdminBulkUpdateOWS';
 export * from './AdminUploadOWS';
+export * from './AdminBulkUpdateIdioms';
+export * from './AdminUploadIdioms';
