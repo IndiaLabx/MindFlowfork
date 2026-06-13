@@ -114,6 +114,7 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
             status: row.status || 'active'
         },
         content: {
+            image_url: row.image_url || undefined,
             phrase: row.phrase || '',
             meanings: {
                 english: row.meaning_english || '',

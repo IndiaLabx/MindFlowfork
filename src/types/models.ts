@@ -97,6 +97,8 @@ export interface Question {
  * Content details for an Idiom.
  */
 export interface IdiomContent {
+  /** Optional image URL for flashcard display */
+  image_url?: string;
   /** The idiom phrase itself. */
   phrase: string;
   /** Meanings of the idiom in English and Hindi. */

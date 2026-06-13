@@ -3,6 +3,7 @@ import { cn } from '../../../../utils/cn';
 import { Idiom } from '../../../types/models';
 import { BookOpen, Lightbulb, Quote, RotateCw, CheckCircle2, Circle } from 'lucide-react';
 import { useIdiomProgress } from '../../idioms/hooks/useIdiomProgress';
+import { FlashcardImage } from '../../../components/ui/FlashcardImage';
 
 /**
  * Props for the Flashcard component.
@@ -146,6 +147,13 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFli
                     <span className="text-indigo-900 text-sm">{idiom.content.extras.origin}</span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Flashcard Image */}
+            {idiom.content.image_url && (
+              <div className="mt-4 pb-4">
+                <FlashcardImage src={idiom.content.image_url} alt={idiom.content.phrase} />
               </div>
             )}
           </div>

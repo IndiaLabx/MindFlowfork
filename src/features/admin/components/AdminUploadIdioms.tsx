@@ -1,10 +1,11 @@
+import { uploadMediaToCloudinary } from '../../../services/mediaUploadService';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
     Upload, ArrowLeft, ShieldAlert, FileJson, FileText, CheckCircle,
     XCircle, AlertTriangle, Loader2, Save, Trash2, Settings, Pencil
-} from 'lucide-react';
+, ImageIcon, ImageOff } from 'lucide-react';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { useFetchIdiomsByV1Ids, useFetchIdiomsByPhrases, useInsertIdioms, useFetchIdiomByPhraseOrId, useUpdateIdiom } from '../hooks/useAdminUploadIdioms';
 import { useNotification } from '../../../hooks/useNotification';
@@ -24,6 +25,7 @@ interface IdiomForm {
     exam_year: string;
     difficulty: string;
     status: string;
+    image_url?: string;
 }
 
 const initialFormState: IdiomForm = {
@@ -71,6 +73,10 @@ export const AdminUploadIdioms: React.FC = () => {
     // Edit State
     const [searchEditId, setSearchEditId] = useState('');
     const [isFetchingEdit, setIsFetchingEdit] = useState(false);
+
+    // --- Media Upload State ---
+    const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+    const [mediaProgress, setMediaProgress] = useState(0);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -236,6 +242,35 @@ export const AdminUploadIdioms: React.FC = () => {
 
 
     if (!user || user.email !== 'admin@mindflow.com') return null;
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            showToast({ title: 'Error', message: 'Image must be under 5MB', variant: 'error' });
+            return;
+        }
+
+        setIsUploadingMedia(true);
+        setMediaProgress(0);
+
+        try {
+            const url = await uploadMediaToCloudinary({
+                file,
+                resourceType: 'image',
+                onProgress: (p: number) => setMediaProgress(p)
+            });
+            setFormData(prev => ({ ...prev, image_url: url }));
+            showToast({ title: 'Success', message: 'Image uploaded successfully!', variant: 'success' });
+        } catch (error: any) {
+            console.error("Upload error:", error);
+            showToast({ title: 'Upload Failed', message: error.message || 'Failed to upload image.', variant: 'error' });
+        } finally {
+            setIsUploadingMedia(false);
+            setMediaProgress(0);
+        }
+    };
 
     return (
         <div className="min-h-screen pt-4 pb-24 px-4 w-full flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -543,6 +578,57 @@ export const AdminUploadIdioms: React.FC = () => {
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mnemonic / Hint</label>
                                         <textarea name="mnemonic" value={formData.mnemonic} onChange={handleChange} rows={3} placeholder="Memory trick..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
                                     </div>
+                                </div>
+
+                                {/* Image Upload Component */}
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                        <ImageIcon className="w-4 h-4" /> Flashcard Image (Optional)
+                                    </label>
+
+                                    {formData.image_url ? (
+                                        <div className="relative w-full max-w-sm aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                                            <img src={formData.image_url} alt="Flashcard preview" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                                                    className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                                                    title="Remove Image"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                disabled={isUploadingMedia}
+                                                className="hidden"
+                                                id="idiom-image-upload"
+                                            />
+                                            <label
+                                                htmlFor="idiom-image-upload"
+                                                className={`w-full flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${isUploadingMedia ? 'border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800 opacity-50 cursor-not-allowed' : 'border-slate-300 hover:border-amber-500 hover:bg-amber-50 dark:border-slate-700 dark:hover:border-amber-500 dark:hover:bg-amber-900/20'}`}
+                                            >
+                                                {isUploadingMedia ? (
+                                                    <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
+                                                        <Loader2 className="w-6 h-6 animate-spin" />
+                                                        <span className="text-sm font-medium">Uploading... {mediaProgress}%</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
+                                                        <ImageOff className="w-8 h-8" />
+                                                        <span className="text-sm font-medium">Click to upload an image</span>
+                                                        <span className="text-xs">PNG, JPG up to 5MB</span>
+                                                    </div>
+                                                )}
+                                            </label>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Properties */}

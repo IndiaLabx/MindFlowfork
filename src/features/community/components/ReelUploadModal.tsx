@@ -1,3 +1,4 @@
+import { uploadMediaToCloudinary } from '../../../services/mediaUploadService';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, CheckCircle2, Film, Loader2 } from 'lucide-react';
@@ -85,57 +86,16 @@ export const ReelUploadModal: React.FC<ReelUploadModalProps> = ({ isOpen, onClos
 
     try {
         // --- CLOUDINARY UPLOAD PIPELINE ---
-        /*
-           INSTRUCTIONS FOR ADMIN:
-           1. Go to your Cloudinary Dashboard: https://cloudinary.com/console/settings/upload
-           2. Scroll to "Upload presets" and click "Add upload preset".
-           3. Name it (e.g., "mindflow_reels"), set Signing Mode to "Unsigned", and click Save.
-           4. Add your Cloud Name and Preset Name to your .env file:
-              VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
-              VITE_CLOUDINARY_UPLOAD_PRESET=mindflow_reels
-        */
-        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-        const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-        if (!cloudName || !uploadPreset) {
-            throw new Error("Cloudinary configuration missing. Please check your environment variables.");
-        }
-
-        const formData = new FormData();
-        formData.append('file', videoFile);
-        formData.append('upload_preset', uploadPreset);
-        formData.append('resource_type', 'video');
-
-        // Setup XMLHttpRequest to track upload progress
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, true);
-
-        const uploadPromise = new Promise<any>((resolve, reject) => {
-            xhr.upload.onprogress = (e) => {
-                if (e.lengthComputable) {
-                    // Map 0-100% XHR progress to 10-90% total progress
-                    // (leaving 10% for DB insertion)
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    setUploadProgress(10 + Math.round(percentComplete * 0.8));
-                }
-            };
-
-            xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(JSON.parse(xhr.responseText));
-                } else {
-                    reject(JSON.parse(xhr.responseText));
-                }
-            };
-
-            xhr.onerror = () => reject(new Error("Network error during upload"));
+        const secureUrl = await uploadMediaToCloudinary({
+            file: videoFile,
+            resourceType: 'video',
+            onProgress: (percentComplete) => {
+                // Map 0-100% XHR progress to 10-90% total progress
+                // (leaving 10% for DB insertion)
+                setUploadProgress(10 + Math.round(percentComplete * 0.8));
+            }
         });
 
-        xhr.send(formData);
-
-        // Wait for Cloudinary response
-        const cloudinaryResponse = await uploadPromise;
-        const secureUrl = cloudinaryResponse.secure_url;
         setUploadProgress(95);
 
         // --- SUPABASE DATABASE INSERTION ---
