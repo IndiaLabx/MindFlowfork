@@ -8,3 +8,6 @@ export * from './hooks/useAdminUploadOWS';
 export * from './api/adminIdiomsApi';
 export * from './hooks/useAdminBulkUpdateIdioms';
 export * from './hooks/useAdminUploadIdioms';
+export * from './api/adminSynonymsApi';
+export * from './hooks/useAdminBulkUpdateSynonyms';
+export * from './hooks/useAdminUploadSynonyms';
