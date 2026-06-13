@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { Idiom } from '../../../types/models';
-import { BookOpen, Lightbulb, Quote, RotateCw, CheckCircle2, Circle } from 'lucide-react';
+import { BookOpen, Lightbulb, Quote, RotateCw, CheckCircle2, Circle, ImagePlus, Trash2, Loader2 } from 'lucide-react';
 import { useIdiomProgress } from '../../idioms/hooks/useIdiomProgress';
 import { FlashcardImage } from '../../../components/ui/FlashcardImage';
+import { useAuth } from '../../auth/context/AuthContext';
+import { uploadMediaToCloudinary } from '../../../services/mediaUploadService';
+import { supabase } from '../../../lib/supabase';
+import { useNotification } from '../../../hooks/useNotification';
 
 /**
  * Props for the Flashcard component.
@@ -26,9 +30,94 @@ interface IdiomCardProps {
  * @param {IdiomCardProps} props - The component props.
  * @returns {JSX.Element} The rendered Flashcard.
  */
-export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFlipped }) => {
+export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, serialNumber, isFlipped }) => {
   const { getKnownStatus, toggleKnownStatus } = useIdiomProgress();
+  const [idiom, setIdiom] = useState<Idiom>(initialIdiom);
   const isKnown = getKnownStatus(idiom);
+
+  const { user } = useAuth();
+  const { showToast } = useNotification();
+  const isAdmin = user?.email === 'admin@mindflow.com';
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Sync initial state if prop changes
+  React.useEffect(() => {
+    setIdiom(initialIdiom);
+  }, [initialIdiom]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    const file = e.target.files?.[0];
+    if (!file || !isAdmin) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({ title: 'Error', message: 'Image must be under 5MB', variant: 'error' });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const url = await uploadMediaToCloudinary({
+        file,
+        resourceType: 'image'
+      });
+
+      const { error } = await supabase
+        .from('idiom')
+        .update({ image_url: url })
+        .eq('id', idiom.id);
+
+      if (error) throw error;
+
+      // Optimistically update local state
+      setIdiom(prev => ({
+        ...prev,
+        content: {
+          ...prev.content,
+          image_url: url
+        }
+      }));
+
+      showToast({ title: 'Success', message: 'Image uploaded and attached!', variant: 'success' });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      showToast({ title: 'Upload Failed', message: error.message || 'Failed to upload image.', variant: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageRemove = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+
+    setIsUploading(true);
+    try {
+      const { error } = await supabase
+        .from('idiom')
+        .update({ image_url: null })
+        .eq('id', idiom.id);
+
+      if (error) throw error;
+
+      // Optimistically update local state
+      setIdiom(prev => ({
+        ...prev,
+        content: {
+          ...prev.content,
+          image_url: undefined
+        }
+      }));
+
+      showToast({ title: 'Removed', message: 'Image removed successfully', variant: 'success' });
+    } catch (error: any) {
+      console.error("Remove error:", error);
+      showToast({ title: 'Failed', message: error.message || 'Failed to remove image.', variant: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div
@@ -151,11 +240,59 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom, serialNumber, isFli
             )}
 
             {/* Flashcard Image */}
-            {idiom.content.image_url && (
-              <div className="mt-4 pb-4">
-                <FlashcardImage src={idiom.content.image_url} alt={idiom.content.phrase} />
-              </div>
-            )}
+            <div className="mt-4 pb-4 relative group/image">
+              {idiom.content.image_url ? (
+                <div className="relative">
+                  <FlashcardImage src={idiom.content.image_url} alt={idiom.content.phrase} />
+                  {isAdmin && (
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center rounded-lg" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={handleImageRemove}
+                        disabled={isUploading}
+                        className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors flex items-center justify-center shadow-lg"
+                        title="Remove Image"
+                      >
+                        {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                isAdmin && (
+                  <div className="w-full" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                      id={`idiom-card-image-upload-${idiom.id}`}
+                    />
+                    <label
+                      htmlFor={`idiom-card-image-upload-${idiom.id}`}
+                      className={cn(
+                        "w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                        isUploading
+                          ? "border-amber-300 bg-amber-50 opacity-70 cursor-not-allowed"
+                          : "border-gray-300 hover:border-amber-500 hover:bg-amber-50 dark:border-gray-700 dark:hover:border-amber-500 dark:hover:bg-amber-900/20"
+                      )}
+                    >
+                      {isUploading ? (
+                        <div className="flex items-center gap-2 text-amber-600">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="text-sm font-medium">Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                          <ImagePlus className="w-5 h-5" />
+                          <span className="text-sm font-medium">Admin: Add Image</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </div>
       </div>
