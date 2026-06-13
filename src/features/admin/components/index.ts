@@ -9,3 +9,5 @@ export * from './AdminBulkUpdateOWS';
 export * from './AdminUploadOWS';
 export * from './AdminBulkUpdateIdioms';
 export * from './AdminUploadIdioms';
+export * from './AdminBulkUpdateSynonyms';
+export * from './AdminUploadSynonyms';
