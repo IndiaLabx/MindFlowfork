@@ -37,6 +37,9 @@ const IdiomsConfig = lazy(() => import('../features/vocab/idioms/IdiomsConfig').
 const OWSConfig = lazy(() => import('../features/vocab/ows/OWSConfig').then(m => ({ default: m.OWSConfig })));
 const LiveQuizRoom = lazy(() => import('../features/quiz/live/LiveQuizRoom').then(m => ({ default: m.LiveQuizRoom })));
 const SynonymsConfig = lazy(() => import('../features/vocab/synonyms/SynonymsConfig').then(m => ({ default: m.SynonymsConfig })));
+const SynonymsHub = lazy(() => import('../features/vocab/synonyms/SynonymsHub').then(m => ({ default: m.SynonymsHub })));
+const OWSHub = lazy(() => import('../features/vocab/ows/OWSHub').then(m => ({ default: m.OWSHub })));
+const IdiomsHub = lazy(() => import('../features/vocab/idioms/IdiomsHub').then(m => ({ default: m.IdiomsHub })));
 const SynonymClusterList = lazy(() => import('../features/vocab/synonyms/components/SynonymClusterList').then(m => ({ default: m.SynonymClusterList })));
 
 const BlueprintPreviewWrapper = lazy(() => import('../features/blueprints/components/BlueprintPreviewWrapper').then(m => ({ default: m.BlueprintPreviewWrapper })));
@@ -249,6 +252,9 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
 
+                    <Route path="/vocab/synonyms" element={<Suspense fallback={<SynapticLoader />}><SynonymsHub onBack={() => navTo('/english')} onStart={(data, filters) => { flashcardStore.startSynonyms(data, filters); navTo('/vocab/synonyms/session'); }} /></Suspense>} />
+                    <Route path="/vocab/ows" element={<Suspense fallback={<SynapticLoader />}><OWSHub onBack={() => navTo('/english')} /></Suspense>} />
+                    <Route path="/vocab/idioms" element={<Suspense fallback={<SynapticLoader />}><IdiomsHub onBack={() => navTo('/english')} /></Suspense>} />
                     <Route path="/vocab/synonyms/config" element={
                         <Suspense fallback={<SynapticLoader />}><SynonymsConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
