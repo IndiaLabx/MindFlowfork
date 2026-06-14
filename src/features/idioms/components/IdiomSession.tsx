@@ -32,7 +32,7 @@ interface PanInfo {
  * Props for the IdiomSession component.
  */
 interface IdiomSessionProps {
-  /** The list of OWS data items for the session. */
+  /** The list of Idiom data items for the session. */
   data: Idiom[];
   /** The current index in the list. */
   currentIndex: number;
@@ -51,9 +51,9 @@ interface IdiomSessionProps {
 }
 
 /**
- * The main container for the One Word Substitution learning session.
+ * The main container for the Idioms & Phrases learning session.
  *
- * This component mirrors the `FlashcardSession` logic but is specialized for OWS data.
+ * This component mirrors the `FlashcardSession` logic but is specialized for Idiom data.
  * It features:
  * - Tinder-like card swiping (Next/Previous).
  * - Animated 3D flipping.
@@ -62,7 +62,7 @@ interface IdiomSessionProps {
  * - Keyboard shortcuts.
  *
  * @param {IdiomSessionProps} props - The component props.
- * @returns {JSX.Element} The rendered OWS Session.
+ * @returns {JSX.Element} The rendered Idiom Session.
  */
 export const IdiomSession: React.FC<IdiomSessionProps> = ({
   data,
@@ -519,7 +519,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
                 <Home className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="font-bold text-gray-900 dark:text-white dark:text-white text-lg leading-tight">One Word Substitution</h1>
+                <h1 className="font-bold text-gray-900 dark:text-white dark:text-white text-lg leading-tight">Idioms & Phrases</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {filters.examName?.[0] || 'Mixed Set'} • {data.length} Cards
                 </p>
