@@ -14,6 +14,8 @@ import {
   FileJson,
   Save
 } from 'lucide-react';
+
+import { ArrowUp, ArrowDown, X, Plus } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { fetchQuestionMetadata, fetchQuestionsByIds } from '../../quiz/services/questionService';
 import { Question, InitialFilters } from '../../quiz/types';
@@ -32,6 +34,18 @@ import { generatePowerPoint } from './utils/pptGenerator';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 
+
+export type SortCriterion = 'examName' | 'examYear' | 'examDateShift' | 'subject' | 'topic' | 'difficulty';
+
+export const sortLabels: Record<SortCriterion, string> = {
+  examName: 'Exam Name',
+  examYear: 'Exam Year',
+  examDateShift: 'Exam Shift',
+  subject: 'Subject',
+  topic: 'Topic',
+  difficulty: 'Difficulty',
+};
+
 const emptyFilters: InitialFilters = {
   subject: [],
   topic: [],
@@ -47,6 +61,7 @@ const emptyFilters: InitialFilters = {
 export const QuizPdfPptGenerator: React.FC = () => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
+  const [sortCriteria, setSortCriteria] = useState<SortCriterion[]>(['examName', 'examDateShift', 'subject']);
 
   // State for Data Fetching & Sync
   const [metadata, setMetadata] = useState<Question[]>([]);
@@ -165,6 +180,28 @@ export const QuizPdfPptGenerator: React.FC = () => {
     });
   };
 
+
+  const sortQuestions = (questions: Question[], criteria: SortCriterion[]) => {
+    return [...questions].sort((a, b) => {
+      for (const criterion of criteria) {
+        let valA, valB;
+        if (criterion === 'examName') { valA = a.sourceInfo?.examName; valB = b.sourceInfo?.examName; }
+        else if (criterion === 'examYear') { valA = a.sourceInfo?.examYear; valB = b.sourceInfo?.examYear; }
+        else if (criterion === 'examDateShift') { valA = a.sourceInfo?.examDateShift; valB = b.sourceInfo?.examDateShift; }
+        else if (criterion === 'subject') { valA = a.classification?.subject; valB = b.classification?.subject; }
+        else if (criterion === 'topic') { valA = a.classification?.topic; valB = b.classification?.topic; }
+        else if (criterion === 'difficulty') { valA = a.properties?.difficulty; valB = b.properties?.difficulty; }
+
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+
+        if (valA < valB) return -1;
+        if (valA > valB) return 1;
+      }
+      return 0; // All criteria matched
+    });
+  };
+
   const validateAndFetchQuestions = async () => {
     if (filteredMetadata.length === 0) {
       setShowEmptyError(true);
@@ -192,12 +229,33 @@ export const QuizPdfPptGenerator: React.FC = () => {
           }
         }
 
-        return fullQuestions;
+        return sortQuestions(fullQuestions, sortCriteria);
     } catch (err) {
         console.error("Failed to fetch full questions:", err);
         alert("Failed to fetch full questions. Please check connection.");
         return null;
     }
+  };
+
+
+  const handleAddSortCriterion = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value as SortCriterion;
+    if (val && !sortCriteria.includes(val)) {
+      setSortCriteria([...sortCriteria, val]);
+    }
+    e.target.value = '';
+  };
+
+  const handleRemoveSortCriterion = (criterionToRemove: SortCriterion) => {
+    setSortCriteria(sortCriteria.filter(c => c !== criterionToRemove));
+  };
+
+  const handleMoveSortCriterion = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === sortCriteria.length - 1)) return;
+    const newCriteria = [...sortCriteria];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newCriteria[index], newCriteria[targetIndex]] = [newCriteria[targetIndex], newCriteria[index]];
+    setSortCriteria(newCriteria);
   };
 
   const handleCreatePDF = async () => {
@@ -485,12 +543,83 @@ export const QuizPdfPptGenerator: React.FC = () => {
           </FilterGroup>
         </div>
 
+
         {/* Active Filters Component */}
         <ActiveFiltersBar
           filters={filters}
           onRemoveFilter={removeFilter}
           onClearAll={() => setFilters(emptyFilters)}
         />
+
+        {/* Sorting Configuration */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mt-6">
+          <div className="bg-gray-50 dark:bg-gray-900/50 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-indigo-500" />
+              Export Sorting Order
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Add Field:</span>
+              <select
+                onChange={handleAddSortCriterion}
+                className="text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-200"
+                defaultValue=""
+              >
+                <option value="" disabled>Select...</option>
+                {Object.entries(sortLabels).map(([key, label]) => {
+                  if (!sortCriteria.includes(key as SortCriterion)) {
+                    return <option key={key} value={key}>{label}</option>;
+                  }
+                  return null;
+                })}
+              </select>
+            </div>
+          </div>
+          <div className="p-6">
+            {sortCriteria.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No sorting criteria defined. Questions will be ordered as retrieved.</p>
+            ) : (
+              <div className="space-y-2">
+                {sortCriteria.map((criterion, index) => (
+                  <div key={criterion} className="flex items-center justify-between bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 p-3 rounded-xl hover:shadow-sm transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-bold w-8 h-8 rounded-full flex items-center justify-center text-sm">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium text-gray-700 dark:text-gray-200">
+                        {sortLabels[criterion]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleMoveSortCriterion(index, 'up')}
+                        disabled={index === 0}
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:hover:text-gray-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSortCriterion(index, 'down')}
+                        disabled={index === sortCriteria.length - 1}
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:hover:text-gray-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 mx-1"></div>
+                      <button
+                        onClick={() => handleRemoveSortCriterion(criterion)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* Footer */}
