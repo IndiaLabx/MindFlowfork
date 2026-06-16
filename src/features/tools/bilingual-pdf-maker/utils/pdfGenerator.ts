@@ -195,7 +195,7 @@ export const generateBilingualPdf = async (
             if (options.pdfLanguage !== 'hindi') {
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(qFont);
-                engQuestionLines = doc.splitTextToSize(`Q.${questionNum}) ${item.question.split(')').slice(1).join(')').trim()}`, contentWidth);
+                engQuestionLines = doc.splitTextToSize(`Q.${questionNum}) ${item.question.replace(/^\d+[\)\.]\s*/, '').trim()}`, contentWidth);
                 engQuestionHeight = engQuestionLines.length * qFont * 1.15;
             }
 
