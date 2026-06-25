@@ -69,11 +69,7 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
                                 )}
 
                                 <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'saved-decks' ? 'opacity-0' : 'opacity-100'}`}>
-                                    <div className="absolute top-4 right-4 z-30">
-                                        <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-sm">
-                                            Library
-                                        </span>
-                                    </div>
+
 
                                     <motion.div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl" initial={{ scale: 0.9, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
                                         <SavedQuizzesSVG />
@@ -111,11 +107,7 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
                                 )}
 
                                 <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'smart-flashcards' ? 'opacity-0' : 'opacity-100'}`}>
-                                    <div className="absolute top-4 right-4 z-30">
-                                        <span className="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2.5 py-0.5 text-xs font-semibold text-indigo-800 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm">
-                                            Spaced Repetition
-                                        </span>
-                                    </div>
+
 
                                     <motion.div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl" initial={{ scale: 0.9, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
                                         <SmartFlashcardsSVG />
