@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { deckService } from '../services/deckService';
 import { useDeckSessionStore } from '../stores/useDeckSessionStore';
+import { useFlashcardStore } from '../../quiz/stores/useFlashcardStore';
 import { VocabType } from '../types';
 import { useAuth } from '../../auth';
 
@@ -17,6 +18,7 @@ export const DeckSessionGuard: React.FC<DeckSessionGuardProps> = ({ vocabType, c
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const { startSession, isActive, deckId: activeDeckId } = useDeckSessionStore();
+    const flashcardStore = useFlashcardStore();
 
     useEffect(() => {
         const initDeck = async () => {
@@ -39,7 +41,21 @@ export const DeckSessionGuard: React.FC<DeckSessionGuardProps> = ({ vocabType, c
 
                 const words = await deckService.getDeckWords(vocabType, deckId);
 
-                // Initialize the Zustand store
+                // Initialize the Global Flashcard Store so that components like IdiomSession can get the mode.
+                if (vocabType === 'idiom') {
+                    flashcardStore.startIdioms(words as any, deck.filters, deck.mode as 'basic' | 'review');
+                } else if (vocabType === 'ows') {
+                    flashcardStore.startOWS(words as any, deck.filters, deck.mode as 'basic' | 'review');
+                } else if (vocabType === 'synonym') {
+                    flashcardStore.startSynonyms(words as any, deck.filters);
+                }
+
+                // Hydrate the flashcard store with the saved current index from DeckState
+                if (deck.state && typeof deck.state.currentQuestionIndex === 'number') {
+                    flashcardStore.jumpToCard(deck.state.currentQuestionIndex);
+                }
+
+                // Initialize the Session Zustand store
                 startSession(vocabType, deckId, words, deck.state);
 
                 setLoading(false);

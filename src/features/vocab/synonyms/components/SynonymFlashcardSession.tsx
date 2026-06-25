@@ -15,7 +15,7 @@ interface PanInfo {
 }
 
 interface SynonymFlashcardSessionProps {
-  data: SynonymWord[];
+  data: any[];
   currentIndex: number;
   onNext: () => void;
   onPrev: () => void;
@@ -23,6 +23,7 @@ interface SynonymFlashcardSessionProps {
   onFinish: () => void;
   filters: any;
   onJump: (index: number) => void;
+  onSwipe?: (wordId: string, status: string, timeSpentMs: number) => void;
 }
 
 export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = ({
@@ -33,267 +34,232 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   onExit,
   onFinish,
   onJump,
-  filters
+  filters,
+  onSwipe
 }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
-  // Motion Values for Physics
-  const x = useMotionValue(0);
   const controls = useAnimation();
-
-  // Tilt card based on horizontal drag
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  // Fade out opacity near edges
-  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-10, 10]);
 
   const currentItem = data[currentIndex];
-  const progress = ((currentIndex + 1) / data.length) * 100;
-  const isFirst = currentIndex === 0;
+  const progress = data.length > 0 ? ((currentIndex + 1) / data.length) * 100 : 0;
   const isLast = currentIndex === data.length - 1;
 
-  // Reset card position on index change
-  useEffect(() => {
-    x.set(0);
-  }, [currentIndex, x]);
-
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isAnimating) return;
-      if (e.key === 'ArrowRight') handleManualNavigation('next');
-      if (e.key === 'ArrowLeft') handleManualNavigation('prev');
-      if (e.key === ' ' || e.key === 'Enter') setIsFlipped(prev => !prev);
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        handleAction('right', 500);
+      } else if (e.key === 'ArrowLeft') {
+        handleAction('left', -500);
+      } else if (e.key === 'Enter') {
+        setIsFlipped(prev => !prev);
+      } else if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isLast, isFirst, isAnimating]);
+  }, [currentIndex, isAnimating, isFullScreen]);
 
-  const handleManualNavigation = async (direction: 'next' | 'prev') => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-
-    try {
-      if (direction === 'next') {
-        if (isLast) {
-          onFinish();
-        } else {
-          // Animate out left
-          await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
-          setIsFlipped(false);
-          onNext();
-          // Reset right
-          x.set(500);
-          await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
-        }
-      } else {
-        if (!isFirst) {
-          // Animate out right
-          await controls.start({ x: 500, opacity: 0, transition: { duration: 0.2 } });
-          setIsFlipped(false);
-          onPrev();
-          // Reset left
-          x.set(-500);
-          await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
-        }
-      }
-    } finally {
-      setIsAnimating(false);
-    }
-  };
-
-  const handleDragEnd = async (event: any, info: PanInfo) => {
-    const threshold = 100;
-    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
-
-    const isIntentionalSwipe = Math.abs(info.offset.x) > threshold || Math.abs(swipePower) > 10000;
-
-    if (isIntentionalSwipe) {
-      const isRightSwipe = info.offset.x > 0;
-      const isLeftSwipe = info.offset.x < 0;
-
-      if (isLeftSwipe) {
-        if (!isLast) {
-          setIsAnimating(true);
-          await controls.start({ x: -1000, opacity: 0, transition: { duration: 0.2 } });
-          setIsFlipped(false);
-          onNext();
-          x.set(1000);
-          await controls.start({ x: 0, opacity: 1 });
-          setIsAnimating(false);
-        } else {
-          await controls.start({ x: -1000, opacity: 0 });
-          onFinish();
-        }
-      } else if (isRightSwipe) {
-        if (!isFirst) {
-          setIsAnimating(true);
-          await controls.start({ x: 1000, opacity: 0, transition: { duration: 0.2 } });
-          setIsFlipped(false);
-          onPrev();
-          x.set(-1000);
-          await controls.start({ x: 0, opacity: 1 });
-          setIsAnimating(false);
-        } else {
-          controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
-        }
-      }
-    } else {
-      controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
-    }
-  };
+  useEffect(() => {
+    x.set(0);
+    controls.set({ x: 0, opacity: 1, scale: 1 });
+    setIsFlipped(false);
+  }, [currentIndex]);
 
   const toggleFullScreen = () => {
-    if (!isFullScreen) {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((e) => console.log(e));
       setIsFullScreen(true);
-      document.documentElement.requestFullscreen?.().catch(console.warn);
     } else {
-      setIsFullScreen(false);
-      if (document.fullscreenElement) document.exitFullscreen?.().catch(console.warn);
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullScreen(false);
+      }
     }
   };
 
-  const handleJump = (index: number) => {
+  const handlePan = (e: any, info: PanInfo) => {
+    const isSwipeX = Math.abs(info.offset.x) > Math.abs(info.offset.y);
+    if (isSwipeX) {
+      x.set(info.offset.x);
+      if (info.offset.x > 100) setSwipeDirection('right');
+      else if (info.offset.x < -100) setSwipeDirection('left');
+      else setSwipeDirection(null);
+    }
+  };
+
+  const handlePanEnd = async (e: any, info: PanInfo) => {
+    const threshold = 100;
+    const isSwipeX = Math.abs(info.offset.x) > Math.abs(info.offset.y);
+
+    if (isSwipeX) {
+      if (info.offset.x > threshold) {
+        await handleAction('right', info.velocity.x);
+      } else if (info.offset.x < -threshold) {
+        await handleAction('left', info.velocity.x);
+      } else {
+        x.set(0);
+        setSwipeDirection(null);
+      }
+    } else {
+      x.set(0);
+      setSwipeDirection(null);
+    }
+  };
+
+  const handleAction = async (direction: 'left' | 'right', velocity: number) => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setSwipeDirection(direction);
+
+    // Call onSwipe if provided for DeckSession
+    if (onSwipe && currentItem) {
+        onSwipe(currentItem.id || currentItem.word, direction === 'right' ? 'mastered' : 'review', 1000);
+    }
+
+    if (direction === 'left') {
+        await controls.start({ x: -500, opacity: 0, transition: { duration: 0.2 } });
+        onPrev();
+        x.set(500);
+        await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+    } else {
+        await controls.start({ x: 500, opacity: 0, transition: { duration: 0.2 } });
+        if (isLast) {
+            onFinish();
+        } else {
+            onNext();
+        }
+        x.set(-500);
+        await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
+    }
+
+    setIsAnimating(false);
+    setSwipeDirection(null);
     setIsFlipped(false);
-    onJump(index);
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 dark:bg-gray-800 flex flex-col overflow-hidden">
-
-      <SynonymNavigationPanel
-        isOpen={isNavOpen}
-        onClose={() => setIsNavOpen(false)}
-        data={data}
-        currentIndex={currentIndex}
-        onJump={handleJump}
-      />
-
+    <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden font-sans touch-callout-none">
       {/* Header */}
       {!isFullScreen && (
-        <div className="flex-none z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="px-6 py-4 flex items-center justify-between">
+        <div className="flex-none bg-white dark:bg-slate-800 shadow-sm z-20 transition-colors">
+          <div className="flex justify-between items-center p-4">
             <div className="flex items-center gap-4">
-              <button onClick={onExit} className="p-2 hover:bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400 transition-colors" aria-label="Exit session">
-                <Home className="w-5 h-5" />
+              <button onClick={onExit} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors" title="Exit">
+                <Home className="w-6 h-6 text-slate-600 dark:text-slate-300" />
               </button>
-              <div>
-                <h1 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">Synonym Master</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {filters?.phase ? `Phase ${filters.phase}` : 'Mixed Set'} • {data.length} Cards
-                </p>
+              <div className="font-bold text-slate-800 dark:text-slate-100 hidden sm:block">
+                Synonyms
               </div>
             </div>
-
+            <div className="font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full text-sm">
+              {currentIndex + 1} / {data.length}
+            </div>
             <div className="flex items-center gap-2">
-              <div className="font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg text-sm hidden sm:block">
-                {currentIndex + 1} / {data.length}
-              </div>
-              <button onClick={() => setIsNavOpen(true)} className="p-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg transition-colors" aria-label="Open Map">
+              <button onClick={() => setIsNavOpen(true)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors hidden md:block" title="Card List">
                 <Menu className="w-5 h-5" />
               </button>
-              <button onClick={toggleFullScreen} className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-600 dark:text-gray-300" aria-label="Toggle fullscreen">
+              <button onClick={toggleFullScreen} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors" title="Toggle Fullscreen">
                 <Maximize2 className="w-5 h-5" />
               </button>
             </div>
           </div>
-          <div className="h-1 w-full bg-gray-200 dark:bg-gray-700">
-            <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+          {/* Progress Bar */}
+          <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700">
+            <div className="h-full bg-indigo-500 transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
           </div>
         </div>
       )}
 
-      {/* Card Arena */}
-      <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
-
+      {/* Main Area */}
+      <div className="flex-1 relative flex items-center justify-center p-4 md:p-8 overflow-hidden perspective-1000">
         {isFullScreen && (
-          <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white dark:bg-gray-800/20 backdrop-blur-md rounded-full text-gray-800 dark:text-gray-100 shadow-lg hover:bg-white dark:hover:bg-gray-800/40 transition-colors" aria-label="Toggle fullscreen">
-            <Minimize2 className="w-6 h-6" />
+          <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-30 p-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-full shadow-md hover:bg-white dark:hover:bg-slate-700 transition-colors">
+            <Minimize2 className="w-5 h-5 text-slate-800 dark:text-slate-200" />
           </button>
         )}
 
-        <div className={cn(
-          "relative w-full max-w-md transition-all duration-300 perspective-1000 z-10",
-          isFullScreen ? "h-[80vh] md:h-[70vh] max-w-lg" : "h-[60vh] max-h-[600px]"
+        {currentItem ? (
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            onPan={handlePan}
+            onPanEnd={handlePanEnd}
+            animate={controls}
+            style={{ x, rotate }}
+            onTap={(e, info) => {
+              if (isAnimating) return;
+              if (Math.abs(info.point.x - info.point.x) < 5) {
+                setIsFlipped(!isFlipped);
+              }
+            }}
+            className={cn(
+              "w-full max-w-md h-[65vh] max-h-[600px] cursor-grab active:cursor-grabbing will-change-transform",
+              isFullScreen && "h-[85vh] max-w-lg"
+            )}
+          >
+            <SynonymCard data={currentItem} isFlipped={isFlipped} serialNumber={currentIndex + 1} />
+          </motion.div>
+        ) : (
+          <div className="text-slate-400">No synonyms available.</div>
         )}
-        >
-          {currentItem ? (
-            <motion.div
-              key={currentItem.word} // Use word as key since synonym data might not have unique ID
-              style={{
-                x,
-                rotate,
-                opacity,
-                touchAction: 'pan-y',
-                cursor: isAnimating ? 'default' : 'grab'
-              } as any}
-              animate={controls}
-              drag={isAnimating ? false : "x"}
-              dragDirectionLock={false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.7}
-              onDragEnd={handleDragEnd as any}
-              onTap={() => !isAnimating && setIsFlipped(!isFlipped)}
-              className="absolute w-full h-full select-none touch-callout-none active:cursor-grabbing"
-            >
-              <SynonymCard data={currentItem} serialNumber={currentIndex + 1} isFlipped={isFlipped} />
-            </motion.div>
-          ) : (
-            <div className="h-full w-full flex items-center justify-center bg-white dark:bg-gray-800 rounded-3xl shadow-sm">
-              <p className="text-gray-400">No cards available.</p>
-            </div>
-          )}
-        </div>
 
-        {/* Hint */}
-        <div className="absolute bottom-8 text-gray-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none z-0">
-          {isFlipped ? "Scroll to read • Swipe to Next" : "Tap to flip"}
+        <div className="absolute bottom-6 md:bottom-12 text-slate-400 text-xs font-medium uppercase tracking-widest animate-pulse pointer-events-none select-none">
+          {isFlipped ? "Tap to flip back" : "Tap to flip"}
         </div>
       </div>
 
-      {/* Footer Controls */}
-      <div className="flex-none z-30 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 md:p-6 pb-safe">
-        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+      {/* Footer Navigation */}
+      <div className="flex-none bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 pb-safe z-20">
+        <div className="max-w-md mx-auto flex justify-between items-center">
           <Button
             variant="outline"
-            onClick={() => handleManualNavigation('prev')}
-            disabled={isFirst || isAnimating}
-            className="flex-1 justify-center"
+            onClick={() => handleAction('left', -500)}
+            disabled={currentIndex === 0 || isAnimating}
+            className="w-14 h-14 rounded-full p-0 flex items-center justify-center border-2"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Previous
+            <ArrowLeft className="w-6 h-6" />
           </Button>
 
-          <div
-            onClick={() => !isAnimating && setIsFlipped(!isFlipped)}
-            className="p-3 bg-gray-50 dark:bg-gray-900 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer active:scale-95 transition-transform"
+          <Button
+            variant="ghost"
+            onClick={() => setIsFlipped(!isFlipped)}
+            className="w-14 h-14 rounded-full p-0 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
           >
-            <RotateCw className={cn("w-6 h-6", isAnimating && "opacity-50")} />
-          </div>
+            <RotateCw className="w-6 h-6" />
+          </Button>
 
           <Button
-            onClick={() => handleManualNavigation('next')}
+            variant="primary"
+            onClick={() => handleAction('right', 500)}
             disabled={isAnimating}
-            className="flex-1 justify-center bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20"
+            className="w-14 h-14 rounded-full p-0 flex items-center justify-center shadow-lg"
           >
-            {isLast ? (
-              <>Finish <RotateCcw className="w-4 h-4 ml-2" /></>
-            ) : (
-              <>Next <ArrowRight className="w-4 h-4 ml-2" /></>
-            )}
+            <ArrowRight className="w-6 h-6" />
           </Button>
         </div>
       </div>
 
-      <style>{`
-        .perspective-1000 { perspective: 1000px; }
-        .touch-callout-none { -webkit-touch-callout: none; }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1.5rem); }
-        .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-      `}</style>
+      {/* Navigation Drawer */}
+      <SynonymNavigationPanel
+        isOpen={isNavOpen}
+        onClose={() => setIsNavOpen(false)}
+        data={data as any}
+        currentIndex={currentIndex}
+        onJump={(index) => {
+          onJump(index);
+          setIsNavOpen(false);
+          setIsFlipped(false);
+        }}
+      />
     </div>
   );
 };
