@@ -52,6 +52,22 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
+                                onClick={() => handleNavigation('saved-decks', () => navigate('/vocab/idioms/library'))}
+                                className="group cursor-pointer bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl border border-slate-200 dark:border-slate-700 transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300">
+                                    <BookOpen className="w-8 h-8 sm:w-10 sm:h-10" />
+                                </div>
+                                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">Saved Decks</h3>
+                                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">Resume and review your custom saved decks.</p>
+                            </motion.div>
+
+
+                            <motion.div
+                                variants={itemVariants}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => handleNavigation('smart-flashcards', () => navigate('/vocab/idioms/config'))}
                                 className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >

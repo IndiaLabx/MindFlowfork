@@ -90,6 +90,15 @@ const GodModeSession = lazy(() => import('../features/quiz/mock/GodModeSession')
 const IdiomSession = lazy(() => import('../features/vocab/idioms/components/IdiomSession').then(m => ({ default: m.IdiomSession })));
 const OWSSession = lazy(() => import('../features/vocab/ows/components/OWSSession').then(m => ({ default: m.OWSSession })));
 
+// Vocab Libraries
+const VocabLibraryPage = lazy(() => import('../features/vocab/components/VocabLibrary').then(m => ({ default: m.VocabLibrary })));
+
+const DeckSessionGuard = lazy(() => import('../features/vocab/components/DeckSessionGuard').then(m => ({ default: m.DeckSessionGuard })));
+const DeckSession = lazy(() => import('../features/vocab/components/DeckSession').then(m => ({ default: m.DeckSession })));
+const VocabResult = lazy(() => import('../features/vocab/components/VocabResult').then(m => ({ default: m.VocabResult })));
+
+
+
 // Auth & User Management
 const AuthPage = lazy(() => import('../features/auth/components/AuthPage'));
 const ProfilePage = lazy(() => import('../features/auth/components/ProfilePage'));
@@ -252,7 +261,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
 
 
-                    <Route path="/vocab/synonyms" element={<Suspense fallback={<SynapticLoader />}><SynonymsHub onBack={() => navTo('/english')} onStart={(data, filters) => { flashcardStore.startSynonyms(data, filters); navTo('/vocab/synonyms/session'); }} /></Suspense>} />
+                    <Route path="/vocab/synonyms" element={<Suspense fallback={<SynapticLoader />}><SynonymsHub onBack={() => navTo('/english')} onStart={(data, filters) => { flashcardStore.startSynonyms(data, filters); navTo(`/vocab/synonyms/session/${id}`); }} /></Suspense>} />
                     <Route path="/vocab/ows" element={<Suspense fallback={<SynapticLoader />}><OWSHub onBack={() => navTo('/english')} /></Suspense>} />
                     <Route path="/vocab/idioms" element={<Suspense fallback={<SynapticLoader />}><IdiomsHub onBack={() => navTo('/english')} /></Suspense>} />
                     <Route path="/vocab/synonyms/config" element={
@@ -260,7 +269,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data: any, filters: any) => {
                                 flashcardStore.startSynonyms(data, filters);
-                                navTo('/vocab/synonyms/session');
+                                navTo(`/vocab/synonyms/session/${id}`);
                             }}
                         /></Suspense>
                     } />
@@ -396,12 +405,27 @@ const handleReattempt = async (quizId: string, mode: string) => {
 
                 {/* --- Immersive Session Routes (No Layout, Fullscreen) --- */}
 
-                    <Route path="/vocab/idioms/config" element={
+
+                    {/* Vocab Libraries */}
+                    <Route path="/vocab/ows/library" element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="ows" onBack={() => navTo('/vocab/ows')} onStartDeck={(id) => { /* TODO start deck */ navTo(`/vocab/ows/session/${id}`); }} /></Suspense>} />
+                    <Route path="/vocab/idioms/library" element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="idiom" onBack={() => navTo('/vocab/idioms')} onStartDeck={(id) => { navTo(`/vocab/idioms/session/${id}`); }} /></Suspense>} />
+                    <Route path="/vocab/synonyms/library" element={<Suspense fallback={<SynapticLoader />}><VocabLibraryPage vocabType="synonym" onBack={() => navTo('/vocab/synonyms')} onStartDeck={(id) => { navTo(`/vocab/synonyms/session/${id}`); }} /></Suspense>} />
+
+
+                    <Route path="/vocab/ows/session/:deckId" element={<Suspense fallback={<SynapticLoader />}><DeckSessionGuard vocabType="ows"><DeckSession /></DeckSessionGuard></Suspense>} />
+                    <Route path="/vocab/idioms/session/:deckId" element={<Suspense fallback={<SynapticLoader />}><DeckSessionGuard vocabType="idiom"><DeckSession /></DeckSessionGuard></Suspense>} />
+                    <Route path="/vocab/synonyms/session/:deckId" element={<Suspense fallback={<SynapticLoader />}><DeckSessionGuard vocabType="synonym"><DeckSession /></DeckSessionGuard></Suspense>} />
+
+                    <Route path="/vocab/ows/result/:deckId" element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="ows" /></Suspense>} />
+                    <Route path="/vocab/idioms/result/:deckId" element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="idiom" /></Suspense>} />
+                    <Route path="/vocab/synonyms/result/:deckId" element={<Suspense fallback={<SynapticLoader />}><VocabResult vocabType="synonym" /></Suspense>} />
+
+<Route path="/vocab/idioms/config" element={
                         <Suspense fallback={<SynapticLoader />}><IdiomsConfig
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data, filters, mode) => {
                                 flashcardStore.startIdioms(data as any, filters, mode as 'basic' | 'review');
-                                navTo('/vocab/idioms/session');
+                                navTo(`/vocab/idioms/session/${id}`);
                             }}
                         /></Suspense>
                     } />
@@ -411,7 +435,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                             onBack={() => { enterEnglishHome(); navTo('/english'); }}
                             onStart={(data, filters, mode) => {
                                 flashcardStore.startOWS(data, filters, mode as 'basic' | 'review');
-                                navTo('/vocab/ows/session');
+                                navTo(`/vocab/ows/session/${id}`);
                             }}
                         /></Suspense>
                     } />
@@ -520,7 +544,7 @@ const handleReattempt = async (quizId: string, mode: string) => {
                 } />
 
                 <Route path="/vocab/synonyms/phase1" element={<Suspense fallback={<SynapticLoader />}><SynonymPhase1Session /></Suspense>} />
-                <Route path="/vocab/synonyms/list" element={<Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo('/vocab/synonyms/session'); }} onExit={() => navTo('/vocab/synonyms')} /></Suspense>} />
+                <Route path="/vocab/synonyms/list" element={<Suspense fallback={<SynapticLoader />}><SynonymClusterList data={flashcardStore.synonyms} onSelectWord={(word) => { flashcardStore.jumpToCard(flashcardStore.synonyms.findIndex(w => w.id === word.id) || 0); navTo(`/vocab/synonyms/session/${id}`); }} onExit={() => navTo('/vocab/synonyms')} /></Suspense>} />
                 <Route path="/vocab/synonyms/quiz" element={<Suspense fallback={<SynapticLoader />}><SynonymQuizSession onExit={() => navTo('/vocab/synonyms')} /></Suspense>} />
 
 

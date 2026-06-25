@@ -40,6 +40,7 @@ interface OWSSessionProps {
   onPrev: () => void;
   /** Callback to exit the session. */
   onExit: () => void;
+  onSwipe?: (wordId: string, status: string, timeSpentMs: number) => void;
   /** Callback to finish the session. */
   onFinish: () => void;
   /** Callback to jump to a specific index. */
@@ -397,6 +398,9 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
      // Save event to IndexedDB
      saveSwipeEvent(currentItem.id || currentItem.content.word, status, Math.abs(vel));
+     if (onSwipe) {
+         onSwipe(currentItem.id || currentItem.content.word, status, 1000);
+     }
 
      // Reset for next card
      setIsFlipped(false);

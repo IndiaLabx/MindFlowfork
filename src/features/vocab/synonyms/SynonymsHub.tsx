@@ -212,7 +212,37 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
 
                             {/* Smart Flashcards */}
+
+                            {/* Saved Decks */}
                             <motion.div
+                                variants={itemVariants}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleNavigation('saved-decks', () => navigate('/vocab/synonyms/library'))}
+                                className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+                                <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-purple-200/50 dark:border-b-purple-700/50 group-hover:border-purple-300 dark:group-hover:border-purple-500"></div>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-purple-500"></div>
+
+                                <div className="relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300">
+                                    <motion.div
+                                        className="w-16 h-16 sm:w-24 sm:h-24 mb-4 sm:mb-6 relative flex items-center justify-center"
+                                        animate={{ y: [0, -5, 0] }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                    >
+                                        <div className="absolute inset-0 bg-purple-500 rounded-full blur-xl opacity-20 dark:opacity-40"></div>
+                                        <BookOpen className="w-10 h-10 sm:w-14 sm:h-14 text-purple-600 dark:text-purple-400 drop-shadow-md" />
+                                    </motion.div>
+                                    <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                        <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-purple-900 dark:from-purple-300 dark:to-purple-100 mb-1 sm:mb-2">Saved Decks</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">Resume and review custom decks.</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+<motion.div
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
