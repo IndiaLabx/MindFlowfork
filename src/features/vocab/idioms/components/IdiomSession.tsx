@@ -73,6 +73,7 @@ export const IdiomSession: React.FC<IdiomSessionProps> = ({
   onExit,
   onFinish,
   onJump,
+  onSwipe,
   filters
 }) => {
   const { user } = useAuth();

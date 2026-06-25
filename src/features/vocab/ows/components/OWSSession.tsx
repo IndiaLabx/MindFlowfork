@@ -71,6 +71,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
   onExit,
   onFinish,
   onJump,
+  onSwipe,
   filters
 }) => {
   const { user } = useAuth();

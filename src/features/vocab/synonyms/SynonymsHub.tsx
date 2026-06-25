@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNavSpinner } from '../../../hooks/useNavSpinner';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import {  Loader2, ArrowLeft , BookOpen } from 'lucide-react';
 import { SynonymWord } from '../../../features/quiz/types';
 import { quizEngine } from '../../../features/quiz/engine';
 import { SynapticLoader } from './SynapticLoader';

@@ -2,7 +2,6 @@
   // TypeScript Configuration
   // Configures the TypeScript compiler for a React + Vite project using ESNext modules.
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     // Target ECMAScript version
     "target": "ES2022",
     // Enable experimental decorators
