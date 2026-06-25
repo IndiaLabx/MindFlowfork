@@ -9,6 +9,7 @@ import { useAuth } from '../../../../features/auth/context/AuthContext';
 import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
 import { supabase } from '../../../../lib/supabase';
 import { useNotification } from '../../../../hooks/useNotification';
+import { useAdminDeleteVocab } from '../../hooks/useAdminDeleteVocab';
 
 /**
  * Props for the One Word Substitution (OWS) Card.
@@ -32,6 +33,7 @@ interface OWSCardProps {
  * @returns {JSX.Element} The rendered OWS Card.
  */
 export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumber, isFlipped }) => {
+  const { mutate: deleteVocab, isPending: isDeleting } = useAdminDeleteVocab();
   const [data, setData] = useState<OneWord>(initialData);
   const { getKnownStatus, toggleKnownStatus } = useOWSProgress();
   const isKnown = getKnownStatus(data);
@@ -107,6 +109,14 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
       setIsUploading(false);
     }
   };
+  const handleDeleteCard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    if (window.confirm('Are you sure you want to permanently delete this ows?')) {
+      deleteVocab({ id: data.id, type: 'ows' });
+    }
+  };
+
 
   return (
     <div className="relative w-full h-full perspective-1000 cursor-pointer group">
@@ -122,6 +132,19 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
 
           {/* Header Decoration */}
           <div className="h-2 w-full bg-gradient-to-r from-teal-400 to-cyan-500"></div>
+
+        {isAdmin && (
+          <div className="absolute top-4 right-4 z-50">
+            <button
+              onClick={handleDeleteCard}
+              disabled={isDeleting}
+              className="p-2 bg-red-500/80 hover:bg-red-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Delete Card"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
 
             <div className="absolute top-4 left-4">
               {isKnown && (
