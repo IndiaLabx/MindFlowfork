@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNavSpinner } from '../../../hooks/useNavSpinner';
-import {  Loader2, ArrowLeft , BookOpen } from 'lucide-react';
+import { Loader2, ArrowLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Using the same Smart Flashcards SVG component as synonyms for now
 import { SmartFlashcardsSVG } from '../synonyms/components/SynonymsSVGs';
+import { SavedQuizzesSVG } from '../../../features/quiz/components/DashboardSVGs';
 
 interface IdiomsHubProps {
     onBack: () => void;
@@ -46,24 +47,51 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
                             <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
                         </div>
 
-                        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl mx-auto z-20">
 
+                            {/* Saved Decks */}
                             <motion.div
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handleNavigation('saved-decks', () => navigate('/vocab/idioms/library'))}
-                                className="group cursor-pointer bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl border border-slate-200 dark:border-slate-700 transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden"
+                                className="relative group cursor-pointer aspect-square rounded-[32px] sm:rounded-[40px] p-[1px] overflow-hidden"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300">
-                                    <BookOpen className="w-8 h-8 sm:w-10 sm:h-10" />
+                                <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl transition-colors duration-300 z-0"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/10 dark:from-white/10 dark:to-transparent z-0"></div>
+                                <div className="absolute inset-0 rounded-[32px] sm:rounded-[40px] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] z-10 transition-all duration-300 group-active:border-b-0 border-b-[4px] border-b-emerald-200/50 dark:border-b-emerald-700/50 group-hover:border-emerald-300 dark:group-hover:border-emerald-500"></div>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500 z-0 bg-emerald-500"></div>
+
+                                {loadingId === 'saved-decks' && (
+                                    <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-[32px] sm:rounded-[40px]">
+                                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin drop-shadow-md" />
+                                    </div>
+                                )}
+
+                                <div className={`relative z-20 flex flex-col items-center justify-between h-full w-full p-4 sm:p-6 transition-opacity duration-300 ${loadingId === 'saved-decks' ? 'opacity-0' : 'opacity-100'}`}>
+                                    <div className="absolute top-4 right-4 z-30">
+                                        <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                                            Library
+                                        </span>
+                                    </div>
+
+                                    <motion.div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl" initial={{ scale: 0.9, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
+                                        <SavedQuizzesSVG />
+                                    </motion.div>
+
+                                    <div className="flex flex-col items-center justify-end w-full text-center pb-2">
+                                        <div className="flex items-center justify-center mb-1 sm:mb-2 gap-1">
+                                            <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-900 dark:from-emerald-300 dark:to-emerald-100">
+                                                Saved Decks
+                                            </h3>
+                                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                                        </div>
+                                        <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">Resume and review your custom saved decks.</p>
+                                    </div>
                                 </div>
-                                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">Saved Decks</h3>
-                                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">Resume and review your custom saved decks.</p>
                             </motion.div>
 
-
+                            {/* Smart Flashcards */}
                             <motion.div
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02 }}
@@ -92,12 +120,19 @@ export const IdiomsHub: React.FC<IdiomsHubProps> = ({ onBack }) => {
                                     <motion.div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 mt-2 relative drop-shadow-xl" initial={{ scale: 0.9, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
                                         <SmartFlashcardsSVG />
                                     </motion.div>
+
                                     <div className="flex flex-col items-center justify-end w-full text-center pb-2">
-                                        <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-900 dark:from-indigo-300 dark:to-indigo-100 mb-1 sm:mb-2">Smart Flashcards</h3>
+                                        <div className="flex items-center justify-center mb-1 sm:mb-2 gap-1">
+                                            <h3 className="text-sm sm:text-lg font-black leading-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-900 dark:from-indigo-300 dark:to-indigo-100">
+                                                Smart Flashcards
+                                            </h3>
+                                            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                                        </div>
                                         <p className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-semibold leading-tight line-clamp-2 max-w-[90%]">Swipe through personalized idioms sets based on mastery.</p>
                                     </div>
                                 </div>
                             </motion.div>
+
                         </motion.div>
                     </div>
                 </div>
