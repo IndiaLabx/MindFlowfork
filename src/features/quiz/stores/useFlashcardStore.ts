@@ -36,6 +36,7 @@ interface FlashcardState {
   nextCard: () => void;
   prevCard: () => void;
   jumpToCard: (index: number) => void;
+  removeCard: (id: string) => void;
   updateSwipeStats: (key: keyof SwipeStats, delta: number) => void;
 
   // Lifecycle
@@ -103,6 +104,41 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   jumpToCard: (index) => set({
     currentIndex: index
+  }),
+
+  removeCard: (id: string) => set((state) => {
+    let newIdioms = state.idioms;
+    let newOws = state.ows;
+    let newSynonyms = state.synonyms;
+    let maxIndex = 0;
+
+    if (state.type === 'idioms') {
+      newIdioms = state.idioms.filter(item => item.id !== id);
+      maxIndex = newIdioms.length;
+    } else if (state.type === 'ows') {
+      newOws = state.ows.filter(item => item.id !== id);
+      maxIndex = newOws.length;
+    } else if (state.type === 'synonyms') {
+      newSynonyms = state.synonyms.filter(item => item.id !== id);
+      maxIndex = newSynonyms.length;
+    }
+
+    // Adjust currentIndex if necessary
+    let newIndex = state.currentIndex;
+    if (newIndex >= maxIndex) {
+      newIndex = Math.max(0, maxIndex - 1);
+    }
+
+    // If list is empty, mark complete
+    const newStatus = maxIndex === 0 ? 'complete' : state.status;
+
+    return {
+      idioms: newIdioms,
+      ows: newOws,
+      synonyms: newSynonyms,
+      currentIndex: newIndex,
+      status: newStatus
+    };
   }),
 
   updateSwipeStats: (key, delta) => set((state) => ({

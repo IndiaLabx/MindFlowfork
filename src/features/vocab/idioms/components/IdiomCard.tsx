@@ -8,6 +8,7 @@ import { useAuth } from '../../../../features/auth/context/AuthContext';
 import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
 import { supabase } from '../../../../lib/supabase';
 import { useNotification } from '../../../../hooks/useNotification';
+import { useAdminDeleteVocab } from '../../hooks/useAdminDeleteVocab';
 
 /**
  * Props for the Flashcard component.
@@ -31,6 +32,7 @@ interface IdiomCardProps {
  * @returns {JSX.Element} The rendered Flashcard.
  */
 export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, serialNumber, isFlipped }) => {
+  const { mutate: deleteVocab, isPending: isDeleting } = useAdminDeleteVocab();
   const { getKnownStatus, toggleKnownStatus } = useIdiomProgress();
   const [idiom, setIdiom] = useState<Idiom>(initialIdiom);
   const isKnown = getKnownStatus(idiom);
@@ -118,6 +120,14 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
       setIsUploading(false);
     }
   };
+  const handleDeleteCard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    if (window.confirm('Are you sure you want to permanently delete this idiom?')) {
+      deleteVocab({ id: idiom.id, type: 'idiom' });
+    }
+  };
+
 
   return (
     <div
@@ -134,6 +144,19 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
 
           {/* Header Decoration */}
           <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
+
+        {isAdmin && (
+          <div className="absolute top-4 right-4 z-50">
+            <button
+              onClick={handleDeleteCard}
+              disabled={isDeleting}
+              className="p-2 bg-red-500/80 hover:bg-red-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Delete Card"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
 
             <div className="absolute top-4 left-4">
               {isKnown && (

@@ -9,6 +9,7 @@ import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService
 import { supabase } from '../../../../lib/supabase';
 import { useNotification } from '../../../../hooks/useNotification';
 import { ImagePlus, Trash2, Loader2 } from 'lucide-react';
+import { useAdminDeleteVocab } from '../../hooks/useAdminDeleteVocab';
 
 interface SynonymCardProps {
   data: SynonymWord;
@@ -17,6 +18,7 @@ interface SynonymCardProps {
 }
 
 export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, serialNumber, isFlipped }) => {
+  const { mutate: deleteVocab, isPending: isDeleting } = useAdminDeleteVocab();
   const [data, setData] = useState<SynonymWord>(initialData);
   const { markMastered, getStatus } = useSynonymProgress();
   const status = getStatus(data);
@@ -86,6 +88,14 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
       setIsUploading(false);
     }
   };
+  const handleDeleteCard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    if (window.confirm('Are you sure you want to permanently delete this synonym?')) {
+      deleteVocab({ id: data.id, type: 'synonym' });
+    }
+  };
+
 
   return (
     <div className={cn(
@@ -101,7 +111,20 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
           : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
       )}>
 
-        <div className="absolute top-4 right-4 flex items-center gap-2">
+
+        {isAdmin && (
+          <div className="absolute top-4 right-4 z-50">
+            <button
+              onClick={handleDeleteCard}
+              disabled={isDeleting}
+              className="p-2 bg-red-500/80 hover:bg-red-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Delete Card"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
+<div className="absolute top-4 right-4 flex items-center gap-2">
           {data.importance_score > 10 && <span className="text-2xl" title="High Frequency">🔥</span>}
           {data.importance_score >= 5 && data.importance_score <= 10 && <span className="text-xl" title="Medium Frequency">⭐</span>}
         </div>
