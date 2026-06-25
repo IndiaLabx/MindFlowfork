@@ -40,6 +40,7 @@ interface FlashcardState {
   jumpToCard: (index: number) => void;
   removeCard: (id: string) => void;
   updateCardImage: (id: string, type: FlashcardType, imageUrl: string | undefined) => void;
+  updateCard: (id: string, type: NonNullable<FlashcardType>, rawData: any) => void;
   updateSwipeStats: (key: keyof SwipeStats, delta: number) => void;
 
   // Lifecycle
@@ -198,6 +199,98 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     currentIndex: index
   }),
 
+
+  updateCard: (id: string, type: NonNullable<FlashcardType>, rawData: any) => set((state) => {
+    if (type === 'idioms') {
+      return {
+        idioms: state.idioms.map(card => {
+          if (card.id === id) {
+            return {
+              ...card,
+              sourceInfo: {
+                ...card.sourceInfo,
+                pdfName: rawData.source_pdf || card.sourceInfo.pdfName,
+                examYear: rawData.exam_year || card.sourceInfo.examYear
+              },
+              properties: {
+                ...card.properties,
+                difficulty: rawData.difficulty || card.properties.difficulty,
+              },
+              content: {
+                ...card.content,
+                phrase: rawData.phrase || card.content.phrase,
+                meanings: {
+                  english: rawData.meaning_english || card.content.meanings.english,
+                  hindi: rawData.meaning_hindi || card.content.meanings.hindi,
+                },
+                usage: rawData.usage || card.content.usage,
+                extras: {
+                  mnemonic: rawData.mnemonic || card.content.extras.mnemonic,
+                  origin: card.content.extras.origin,
+                }
+              }
+            };
+          }
+          return card;
+        })
+      };
+    }
+
+    if (type === 'ows') {
+      return {
+        ows: state.ows.map(card => {
+          if (card.id === id) {
+            return {
+              ...card,
+              sourceInfo: {
+                ...card.sourceInfo,
+                pdfName: rawData.source_pdf || card.sourceInfo.pdfName,
+                examYear: rawData.exam_year || card.sourceInfo.examYear
+              },
+              properties: {
+                ...card.properties,
+                difficulty: rawData.difficulty || card.properties.difficulty,
+              },
+              content: {
+                ...card.content,
+                word: rawData.word || card.content.word,
+                pos: rawData.pos || card.content.pos,
+                meaning_en: rawData.meaning_english || card.content.meaning_en,
+                meaning_hi: rawData.meaning_hindi || card.content.meaning_hi,
+                usage_sentences: rawData.usage_sentences || card.content.usage_sentences,
+                origin: rawData.root_word || card.content.origin,
+                note: rawData.mnemonic || card.content.note,
+              }
+            };
+          }
+          return card;
+        })
+      };
+    }
+
+    if (type === 'synonyms') {
+      return {
+        synonyms: state.synonyms.map(card => {
+          if (card.id === id) {
+            return {
+              ...card,
+              word: rawData.word || card.word,
+              pos: rawData.pos || card.pos,
+              meaning: rawData.meaning || card.meaning,
+              hindiMeaning: rawData.hindi_meaning || card.hindiMeaning,
+              synonyms: rawData.synonyms || card.synonyms,
+              antonyms: rawData.antonyms || card.antonyms,
+              theme: rawData.theme || card.theme,
+              repetition_raw: rawData.repetition_raw || card.repetition_raw
+            };
+          }
+          return card;
+        })
+      };
+    }
+
+    return state;
+  }),
   updateCardImage: (id: string, type: FlashcardType, imageUrl: string | undefined) => set((state) => {
     if (type === "idioms") {
       return { idioms: state.idioms.map(item => item.id === id ? { ...item, content: { ...item.content, image_url: imageUrl } } : item) };

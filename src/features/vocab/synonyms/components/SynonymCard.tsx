@@ -11,6 +11,8 @@ import { supabase } from '../../../../lib/supabase';
 import { useNotification } from '../../../../hooks/useNotification';
 import { ImagePlus, Trash2, Loader2 } from 'lucide-react';
 import { useAdminDeleteVocab } from '../../hooks/useAdminDeleteVocab';
+import { AdminEditVocabModal } from '../../../../features/admin/components/AdminEditVocabModal';
+import { Edit } from 'lucide-react';
 
 interface SynonymCardProps {
   data: SynonymWord;
@@ -28,6 +30,7 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
   const { showToast } = useNotification();
   const isAdmin = user?.email === 'admin@mindflow.com';
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     setData(initialData);
@@ -117,7 +120,14 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
 
 
         {isAdmin && (
-          <div className="absolute top-4 right-4 z-50">
+          <div className="absolute top-4 right-4 z-50 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="p-2 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Edit Card"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
             <button
               onClick={handleDeleteCard}
               disabled={isDeleting}

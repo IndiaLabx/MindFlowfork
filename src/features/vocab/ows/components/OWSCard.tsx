@@ -11,6 +11,8 @@ import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService
 import { supabase } from '../../../../lib/supabase';
 import { useNotification } from '../../../../hooks/useNotification';
 import { useAdminDeleteVocab } from '../../hooks/useAdminDeleteVocab';
+import { AdminEditVocabModal } from '../../../../features/admin/components/AdminEditVocabModal';
+import { Edit } from 'lucide-react';
 
 /**
  * Props for the One Word Substitution (OWS) Card.
@@ -39,6 +41,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
   const { getKnownStatus, toggleKnownStatus } = useOWSProgress();
   const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const isKnown = getKnownStatus(data);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { user } = useAuth();
   const { showToast } = useNotification();
   const isAdmin = user?.email === 'admin@mindflow.com';
@@ -138,7 +141,14 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
           <div className="h-2 w-full bg-gradient-to-r from-teal-400 to-cyan-500"></div>
 
         {isAdmin && (
-          <div className="absolute top-4 right-4 z-50">
+          <div className="absolute top-4 right-4 z-50 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="p-2 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Edit Card"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
             <button
               onClick={handleDeleteCard}
               disabled={isDeleting}
@@ -323,8 +333,15 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
             </div>
           </div>
         </div>
-      </div>
 
+      <AdminEditVocabModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        type="ows"
+        cardData={data}
+      />
+    </div>
+  );
       <style>{`
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }

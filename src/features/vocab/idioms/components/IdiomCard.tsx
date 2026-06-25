@@ -10,6 +10,8 @@ import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService
 import { supabase } from '../../../../lib/supabase';
 import { useNotification } from '../../../../hooks/useNotification';
 import { useAdminDeleteVocab } from '../../hooks/useAdminDeleteVocab';
+import { AdminEditVocabModal } from '../../../../features/admin/components/AdminEditVocabModal';
+import { Edit } from 'lucide-react';
 
 /**
  * Props for the Flashcard component.
@@ -38,6 +40,7 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
   const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const [idiom, setIdiom] = useState<Idiom>(initialIdiom);
   const isKnown = getKnownStatus(idiom);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { user } = useAuth();
   const { showToast } = useNotification();
@@ -150,7 +153,14 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
           <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
 
         {isAdmin && (
-          <div className="absolute top-4 right-4 z-50">
+          <div className="absolute top-4 right-4 z-50 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="p-2 bg-indigo-500/80 hover:bg-indigo-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Edit Card"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
             <button
               onClick={handleDeleteCard}
               disabled={isDeleting}
@@ -322,8 +332,15 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
             </div>
           </div>
         </div>
-      </div>
 
+      <AdminEditVocabModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        type="idiom"
+        cardData={idiom}
+      />
+    </div>
+  );
       <style>{`
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
