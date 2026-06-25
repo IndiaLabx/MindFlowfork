@@ -180,6 +180,29 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
             </button>
           </div>
 
+
+          {/* Sorting Options */}
+          <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-amber-200 mb-2">
+            <div className="flex items-center gap-1.5 pl-1">
+               <ListFilter className="w-3.5 h-3.5 text-amber-800" />
+               <label htmlFor="sort-order" className="text-xs font-semibold text-amber-800">
+                 Sort By:
+               </label>
+            </div>
+            <select
+              id="sort-order"
+              value={currentSortOrder}
+              onChange={(e) => { setSortOrder(e.target.value as SortOrder, idioms[currentIndex]?.id); onClose(); }}
+              className="text-sm font-medium text-amber-900 bg-amber-50 border-none rounded focus:ring-2 focus:ring-amber-500 py-1 pl-2 pr-6 cursor-pointer outline-none w-36 overflow-hidden text-ellipsis whitespace-nowrap"
+            >
+              <option value="default">Default Order</option>
+              <option value="alphabetical_asc">Alphabetical (A-Z)</option>
+              <option value="alphabetical_desc">Alphabetical (Z-A)</option>
+              <option value="difficulty_asc">Difficulty (Easy First)</option>
+              <option value="difficulty_desc">Difficulty (Hard First)</option>
+              <option value="surprise">Surprise (Random)</option>
+            </select>
+          </div>
           {/* Batch Size Selector */}
           <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-amber-200">
             <label htmlFor="batch-size" className="text-xs font-semibold text-amber-800 pl-1">
