@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
 import { OneWord } from '../../../../types/models';
 import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/useFlashcardStore';
+import { useOWSProgress } from '../hooks/useOWSProgress';
+import { useFlashcardStore as _unused, SortOrder as _unused2 } from '../../../../features/quiz/stores/useFlashcardStore';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
@@ -40,6 +42,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
+  const { getKnownStatus } = useOWSProgress();
 
   // Generators
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF as any));
@@ -270,10 +273,15 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
                 </div>
 
                 {isOpen && (
-                  <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <div className="p-2 flex flex-col gap-1 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
                     {data.slice(start, end).map((item, localIdx) => {
                       const globalIdx = start + localIdx;
                       const isCurrent = globalIdx === currentIndex;
+                      const isKnown = getKnownStatus ? getKnownStatus(item) : false;
+
+                      // Determine status color indicator
+                      let statusColor = "bg-gray-300 dark:bg-gray-600"; // Unseen
+                      if (isKnown) statusColor = "bg-teal-500"; // Known
 
                       return (
                         <button
@@ -284,13 +292,22 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
                           }}
                           title={item.content.word}
                           className={cn(
-                            "aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all relative overflow-hidden",
+                            "w-full flex items-center gap-3 p-2 rounded-lg text-left text-sm font-medium transition-all",
                             isCurrent
-                              ? "bg-teal-500 text-white shadow-md ring-2 ring-teal-300 ring-offset-1 scale-105 z-10"
-                              : "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-teal-300 hover:bg-teal-50 text-gray-600 dark:text-gray-300 hover:text-teal-900"
+                              ? "bg-teal-100 dark:bg-teal-900/40 text-teal-900 dark:text-teal-100 shadow-sm ring-1 ring-teal-300"
+                              : "hover:bg-teal-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300"
                           )}
                         >
-                          {globalIdx + 1}
+                          <span className={cn(
+                            "w-6 text-right text-xs font-bold",
+                            isCurrent ? "text-teal-700 dark:text-teal-300" : "text-gray-400 dark:text-gray-500"
+                          )}>
+                            {globalIdx + 1}
+                          </span>
+                          <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColor)} title={isKnown ? 'Known' : 'Unseen'} />
+                          <span className="truncate flex-1">
+                            {item.content.word}
+                          </span>
                         </button>
                       );
                     })}

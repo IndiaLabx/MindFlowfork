@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
 import { Idiom } from '../../../../features/quiz/types';
 import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/useFlashcardStore';
+import { useIdiomProgress } from '../hooks/useIdiomProgress';
+import { useFlashcardStore as _unused, SortOrder as _unused2 } from '../../../../features/quiz/stores/useFlashcardStore';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
@@ -44,6 +46,7 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
   isOpen, onClose, idioms, currentIndex, onJump
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
+  const { getKnownStatus, getInteractionStatus } = useIdiomProgress();
 
   // Generators
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../../ows/utils/pdfGenerator').then(m => m.generateOWSPDF as any));
@@ -272,10 +275,20 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
                 </div>
 
                 {isOpen && (
-                  <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <div className="p-2 flex flex-col gap-1 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
                     {idioms.slice(start, end).map((idiom, localIdx) => {
                       const globalIdx = start + localIdx;
                       const isCurrent = globalIdx === currentIndex;
+                      const status = getInteractionStatus ? getInteractionStatus(idiom) : undefined;
+                      const isKnown = getKnownStatus ? getKnownStatus(idiom) : false;
+
+                      // Determine status color indicator
+                      let statusColor = "bg-gray-300 dark:bg-gray-600"; // Unseen
+                      if (status === 'mastered') statusColor = "bg-green-500";
+                      else if (status === 'review') statusColor = "bg-blue-500";
+                      else if (status === 'tricky') statusColor = "bg-orange-500";
+                      else if (status === 'clueless') statusColor = "bg-red-500";
+                      else if (isKnown) statusColor = "bg-teal-500"; // Basic mode known
 
                       return (
                         <button
@@ -286,13 +299,22 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
                           }}
                           title={idiom.content.phrase}
                           className={cn(
-                            "aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all relative overflow-hidden",
+                            "w-full flex items-center gap-3 p-2 rounded-lg text-left text-sm font-medium transition-all",
                             isCurrent
-                              ? "bg-amber-50 dark:bg-amber-900/200 text-white shadow-md ring-2 ring-amber-300 ring-offset-1 scale-105 z-10"
-                              : "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-amber-300 hover:bg-amber-50 dark:bg-amber-900/20 text-gray-600 dark:text-gray-300 hover:text-amber-900"
+                              ? "bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 shadow-sm ring-1 ring-amber-300"
+                              : "hover:bg-amber-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300"
                           )}
                         >
-                          {globalIdx + 1}
+                          <span className={cn(
+                            "w-6 text-right text-xs font-bold",
+                            isCurrent ? "text-amber-700 dark:text-amber-300" : "text-gray-400 dark:text-gray-500"
+                          )}>
+                            {globalIdx + 1}
+                          </span>
+                          <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColor)} title={status || (isKnown ? 'Known' : 'Unseen')} />
+                          <span className="truncate flex-1">
+                            {idiom.content.phrase}
+                          </span>
                         </button>
                       );
                     })}
