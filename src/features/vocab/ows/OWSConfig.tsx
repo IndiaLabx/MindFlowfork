@@ -29,13 +29,24 @@ const emptyFilters: InitialFilters = {
     examDateShift: [],
     tags: [],
     knownStatus: [],
-    reviewModeStatus: ['Unseen']
+    reviewModeStatus: ['Unseen'],
+    theme: []
 };
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const { user } = useAuth();
     const { clearProgress } = useOWSProgress();
-    const [filters, setFilters] = useState<InitialFilters>(emptyFilters);
+    const [filters, setFilters] = useState<InitialFilters>(() => {
+        const saved = localStorage.getItem('ows_filters');
+        if (saved) {
+            try { return JSON.parse(saved); } catch (e) { return emptyFilters; }
+        }
+        return emptyFilters;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('ows_filters', JSON.stringify(filters));
+    }, [filters]);
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
     const [sessionMode, setSessionMode] = useState<'basic' | 'review'>('basic');
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -68,6 +79,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
 
     const availableExamNames = Object.keys(index.examName || {}).sort();
     const availableExamYears = Object.keys(index.examYear || {}).sort();
+    const availableThemes = Object.keys(index.theme || {}).sort();
 
         const handleResetProgress = async () => {
         if (window.confirm(`Are you sure you want to reset your ${sessionMode === 'basic' ? 'Basic Mode' : 'Review Mode'} progress? This action cannot be undone.`)) {
@@ -302,6 +314,22 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                             />
                         </div>
                     )}
+
+
+                    {/* Theme Name Card */}
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                        <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
+                            <Target className="w-4 h-4" /> Theme
+                        </div>
+                        <MultiSelectDropdown
+                            label="Theme"
+                            options={availableThemes}
+                            selectedOptions={filters.theme || []}
+                            onSelectionChange={(sel) => handleFilterChange('theme', sel)}
+                            placeholder="Select Theme (e.g. Science)"
+                            counts={filterCounts.theme}
+                        />
+                    </div>
 
                     {/* Difficulty Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">

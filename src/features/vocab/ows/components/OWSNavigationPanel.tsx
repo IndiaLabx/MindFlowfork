@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2 } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
 import { OneWord } from '../../../../types/models';
+import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/useFlashcardStore';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
@@ -66,6 +67,9 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       return 50;
     }
   });
+
+  const currentSortOrder = useFlashcardStore(state => state.currentSortOrder);
+  const setSortOrder = useFlashcardStore(state => state.setSortOrder);
 
   const batchOptions = [5, 10, 15, 20, 25, 30, 40, 50, 100];
 
@@ -172,6 +176,34 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
           </div>
 
           {/* Batch Size Selector */}
+
+          {/* Sorting Options */}
+          <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-teal-200">
+            <div className="flex items-center gap-1.5 pl-1">
+               <ListFilter className="w-3.5 h-3.5 text-teal-800" />
+               <label htmlFor="sort-order" className="text-xs font-semibold text-teal-800">
+                 Sort By:
+               </label>
+            </div>
+            <select
+              id="sort-order"
+              value={currentSortOrder}
+              onChange={(e) => { setSortOrder(e.target.value as SortOrder, data[currentIndex]?.id); onClose(); }}
+              className="text-sm font-medium text-teal-900 bg-teal-50 border-none rounded focus:ring-2 focus:ring-teal-500 py-1 pl-2 pr-6 cursor-pointer outline-none w-36 overflow-hidden text-ellipsis whitespace-nowrap"
+            >
+              <option value="default">Default Order</option>
+              <option value="alphabetical_asc">Alphabetical (A-Z)</option>
+              <option value="alphabetical_desc">Alphabetical (Z-A)</option>
+              <option value="difficulty_asc">Difficulty (Easy First)</option>
+              <option value="difficulty_desc">Difficulty (Hard First)</option>
+              <option value="surprise">Surprise (Random)</option>
+              <option value="importance_desc">Importance Score (High-Low)</option>
+              <option value="importance_asc">Importance Score (Low-High)</option>
+              <option value="repetition_desc">Most Repeated</option>
+              <option value="repetition_asc">Least Repeated</option>
+            </select>
+          </div>
+
           <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-teal-200">
             <label htmlFor="batch-size" className="text-xs font-semibold text-teal-800 pl-1">
               Group Size:

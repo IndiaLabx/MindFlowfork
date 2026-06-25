@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Idiom, OneWord, InitialFilters } from '../../../types/models';
 import { SynonymWord } from '../types';
 
+export type SortOrder = 'alphabetical_asc' | 'alphabetical_desc' | 'difficulty_asc' | 'difficulty_desc' | 'surprise' | 'importance_desc' | 'importance_asc' | 'repetition_desc' | 'repetition_asc' | 'default';
 export type FlashcardType = 'idioms' | 'ows' | 'synonyms' | null;
 
 export interface SwipeStats {
@@ -20,6 +21,7 @@ interface FlashcardState {
   currentIndex: number;
   filters: InitialFilters | null;
   mode?: 'basic' | 'review';
+  currentSortOrder: SortOrder;
   swipeStats: SwipeStats;
 
   // Domain specific data
@@ -43,38 +45,127 @@ interface FlashcardState {
   // Lifecycle
   finishSession: () => void;
   resetSession: () => void;
+  setSortOrder: (sortOrder: SortOrder, currentCardId?: string) => void;
 }
 
 const defaultSwipeStats: SwipeStats = { mastered: 0, tricky: 0, review: 0, clueless: 0, known: 0, unknown: 0 };
+
+
+function shuffleArray<T>(array: T[]): T[] {
+  const newArr = [...array];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+}
+
+const difficultyMap: Record<string, number> = {
+  'Easy': 1,
+  'Medium': 2,
+  'Hard': 3
+};
+
+function sortFlashcards<T extends Idiom | OneWord>(cards: T[], sortOrder: SortOrder): T[] {
+  if (sortOrder === 'surprise') {
+    return shuffleArray(cards);
+  }
+  if (sortOrder === 'default') {
+    return [...cards];
+  }
+
+  return [...cards].sort((a, b) => {
+    // Alphabetical
+    if (sortOrder === 'alphabetical_asc') {
+      const textA = ('word' in a.content) ? a.content.word : ('phrase' in a.content ? a.content.phrase : '');
+      const textB = ('word' in b.content) ? b.content.word : ('phrase' in b.content ? b.content.phrase : '');
+      return String(textA).localeCompare(String(textB));
+    }
+    if (sortOrder === 'alphabetical_desc') {
+      const textA = ('word' in a.content) ? a.content.word : ('phrase' in a.content ? a.content.phrase : '');
+      const textB = ('word' in b.content) ? b.content.word : ('phrase' in b.content ? b.content.phrase : '');
+      return String(textB).localeCompare(String(textA));
+    }
+
+    // Difficulty
+    if (sortOrder === 'difficulty_asc') {
+      const diffA = difficultyMap[a.properties?.difficulty || 'Medium'] || 2;
+      const diffB = difficultyMap[b.properties?.difficulty || 'Medium'] || 2;
+      return diffA - diffB;
+    }
+    if (sortOrder === 'difficulty_desc') {
+      const diffA = difficultyMap[a.properties?.difficulty || 'Medium'] || 2;
+      const diffB = difficultyMap[b.properties?.difficulty || 'Medium'] || 2;
+      return diffB - diffA;
+    }
+
+    // OWS Specific (Importance & Repetition) - Fallback to 0 if not present
+    if (sortOrder === 'importance_desc') {
+       const impA = (a.properties as any)?.importance_score || 0;
+       const impB = (b.properties as any)?.importance_score || 0;
+       return impB - impA;
+    }
+    if (sortOrder === 'importance_asc') {
+       const impA = (a.properties as any)?.importance_score || 0;
+       const impB = (b.properties as any)?.importance_score || 0;
+       return impA - impB;
+    }
+    if (sortOrder === 'repetition_desc') {
+       const repA = (a.properties as any)?.repetition_count || 0;
+       const repB = (b.properties as any)?.repetition_count || 0;
+       return repB - repA;
+    }
+    if (sortOrder === 'repetition_asc') {
+       const repA = (a.properties as any)?.repetition_count || 0;
+       const repB = (b.properties as any)?.repetition_count || 0;
+       return repA - repB;
+    }
+
+    return 0;
+  });
+}
 
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   status: 'idle',
   type: null,
   currentIndex: 0,
   filters: null,
+  currentSortOrder: 'default',
   swipeStats: { ...defaultSwipeStats },
   idioms: [],
   ows: [],
   synonyms: [],
 
-  startIdioms: (data, filters, mode = 'review') => set({
+  startIdioms: (data, filters, mode = 'review') => set((state) => {
+    const initialSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
+    const sortedData = sortFlashcards(data, initialSort);
+    return {
+
     status: 'active',
     type: 'idioms',
-    idioms: data,
+    idioms: sortedData,
+    currentSortOrder: initialSort,
     filters: filters || null,
     mode,
     swipeStats: { ...defaultSwipeStats },
     currentIndex: 0
+    }
   }),
 
-  startOWS: (data, filters, mode = 'review') => set({
+  startOWS: (data, filters, mode = 'review') => set((state) => {
+    const initialSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
+    const sortedData = sortFlashcards(data, initialSort);
+    return {
+
     status: 'active',
     type: 'ows',
-    ows: data,
+    ows: sortedData,
+    currentSortOrder: initialSort,
     filters: filters || null,
     mode,
     swipeStats: { ...defaultSwipeStats },
     currentIndex: 0
+    }
   }),
 
   startSynonyms: (data, filters) => set({
@@ -163,11 +254,39 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     status: 'complete'
   }),
 
+
+
+  setSortOrder: (sortOrder, currentCardId) => set((state) => {
+    localStorage.setItem('flashcard_sort_order', sortOrder);
+
+    if (state.type === 'idioms') {
+       const sorted = sortFlashcards(state.idioms, sortOrder);
+       let newIndex = state.currentIndex;
+       if (currentCardId) {
+          const foundIdx = sorted.findIndex(c => c.id === currentCardId);
+          if (foundIdx !== -1) newIndex = foundIdx;
+       }
+       return { idioms: sorted, currentSortOrder: sortOrder, currentIndex: newIndex };
+    }
+    if (state.type === 'ows') {
+       const sorted = sortFlashcards(state.ows, sortOrder);
+       let newIndex = state.currentIndex;
+       if (currentCardId) {
+          const foundIdx = sorted.findIndex(c => c.id === currentCardId);
+          if (foundIdx !== -1) newIndex = foundIdx;
+       }
+       return { ows: sorted, currentSortOrder: sortOrder, currentIndex: newIndex };
+    }
+
+    return { currentSortOrder: sortOrder };
+  }),
+
   resetSession: () => set({
     status: 'idle',
     type: null,
     currentIndex: 0,
     filters: null,
+    currentSortOrder: 'default',
     swipeStats: { ...defaultSwipeStats },
     idioms: [],
     ows: [],

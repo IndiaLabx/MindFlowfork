@@ -7,14 +7,15 @@ export type OwsMetadata = {
     examName: string;
     examYear: string;
     difficulty: string;
+    theme: string;
     knownStatus: string;
     status?: string;
     next_review_at?: string;
     reviewModeStatus?: string;
 };
 
-type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'knownStatus' | 'reviewModeStatus';
-const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'knownStatus', 'reviewModeStatus'];
+type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'theme' | 'knownStatus' | 'reviewModeStatus';
+const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'theme', 'knownStatus', 'reviewModeStatus'];
 
 
 export function useOwsQuestionIndex(metadata: OwsMetadata[]) {

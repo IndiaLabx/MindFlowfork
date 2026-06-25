@@ -131,6 +131,9 @@ export interface Idiom {
   properties: {
     difficulty: string;
     status: string;
+    theme?: string;
+    importance_score?: number;
+    repetition_count?: number;
   };
   /** The core content of the idiom. */
   content: IdiomContent;
@@ -179,6 +182,9 @@ export interface OneWord {
   properties: {
     difficulty: string;
     status: string;
+    theme?: string;
+    importance_score?: number;
+    repetition_count?: number;
   };
   /** The core content of the OWS. */
   content: OWSContent;
@@ -198,6 +204,7 @@ export interface InitialFilters {
   examYear: string[];
   examDateShift: string[];
   tags: string[];
+  theme?: string[];
     knownStatus?: ('known' | 'unknown')[];
   reviewModeStatus?: ('Unseen' | 'Mastered' | 'Review' | 'Clueless' | 'Tricky')[];
 }

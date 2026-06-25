@@ -10,7 +10,7 @@ export async function fetchOwsMetadata() {
   while (hasMore) {
     const { data, error } = await supabase
       .from("ows")
-      .select("id, word, source_pdf, exam_year, difficulty")
+      .select("id, word, source_pdf, exam_year, difficulty, theme")
       .range(start, start + limit - 1);
 
     if (error) {
@@ -73,6 +73,7 @@ export async function fetchOwsMetadata() {
       examName: row.source_pdf || "Unknown",
       examYear: String(row.exam_year || ""),
       difficulty: row.difficulty || "Medium",
+      theme: row.theme || "",
       knownStatus: interaction?.is_read ? "known" : "unknown",
       status: interaction?.status,
       next_review_at: interaction?.next_review_at,
@@ -101,6 +102,9 @@ export async function getFilteredOws(
     }
     if (filters.difficulty && filters.difficulty.length > 0) {
       query = query.in("difficulty", filters.difficulty);
+    }
+    if (filters.theme && filters.theme.length > 0) {
+      query = query.in("theme", filters.theme);
     }
     if (selectedLetter) {
       query = query.ilike("word", `${selectedLetter}%`);
@@ -136,6 +140,9 @@ export async function getFilteredOws(
     properties: {
       difficulty: row.difficulty || "Medium",
       status: row.status || "active",
+      theme: row.theme || undefined,
+      importance_score: row.importance_score || undefined,
+      repetition_count: row.repetition_count || undefined,
     },
     content: {
       id: row.id ? parseInt(String(row.id).replace(/[^0-9]/g, "")) || 0 : 0,

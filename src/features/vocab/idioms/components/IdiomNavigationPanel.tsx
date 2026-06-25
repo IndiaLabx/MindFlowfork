@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2 } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
 import { Idiom } from '../../../../features/quiz/types';
+import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/useFlashcardStore';
 import { cn } from '../../../../utils/cn';
 import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
@@ -70,6 +71,9 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
       return 50;
     }
   });
+
+  const currentSortOrder = useFlashcardStore(state => state.currentSortOrder);
+  const setSortOrder = useFlashcardStore(state => state.setSortOrder);
 
   const batchOptions = [5, 10, 15, 20, 25, 30, 40, 50, 100];
 
