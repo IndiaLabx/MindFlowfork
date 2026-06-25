@@ -166,6 +166,7 @@ export interface OWSContent {
  * Represents a One Word Substitution entity.
  */
 export interface OneWord {
+  db_id?: string;
   /** Unique identifier for the OWS. */
   id: string;
 

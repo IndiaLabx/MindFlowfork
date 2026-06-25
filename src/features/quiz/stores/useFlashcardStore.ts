@@ -37,6 +37,7 @@ interface FlashcardState {
   prevCard: () => void;
   jumpToCard: (index: number) => void;
   removeCard: (id: string) => void;
+  updateCardImage: (id: string, type: FlashcardType, imageUrl: string | undefined) => void;
   updateSwipeStats: (key: keyof SwipeStats, delta: number) => void;
 
   // Lifecycle
@@ -104,6 +105,19 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   jumpToCard: (index) => set({
     currentIndex: index
+  }),
+
+  updateCardImage: (id: string, type: FlashcardType, imageUrl: string | undefined) => set((state) => {
+    if (type === "idioms") {
+      return { idioms: state.idioms.map(item => item.id === id ? { ...item, content: { ...item.content, image_url: imageUrl } } : item) };
+    }
+    if (type === "ows") {
+      return { ows: state.ows.map(item => item.id === id ? { ...item, content: { ...item.content, image_url: imageUrl } } : item) };
+    }
+    if (type === "synonyms") {
+      return { synonyms: state.synonyms.map(item => item.id === id ? { ...item, image_url: imageUrl } : item) };
+    }
+    return state;
   }),
 
   removeCard: (id: string) => set((state) => {

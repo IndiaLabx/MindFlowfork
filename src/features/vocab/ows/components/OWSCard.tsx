@@ -4,6 +4,7 @@ import { cn } from '../../../../utils/cn';
 import { OneWord } from '../../../../types/models';
 import { BookOpen, Lightbulb, RotateCw, Target, Tag, CheckCircle2, Circle, ImagePlus, Trash2, Loader2 } from 'lucide-react';
 import { useOWSProgress } from '../hooks/useOWSProgress';
+import { useFlashcardStore } from '../../../../features/quiz/stores/useFlashcardStore';
 import { FlashcardImage } from '../../../../components/ui/FlashcardImage';
 import { useAuth } from '../../../../features/auth/context/AuthContext';
 import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
@@ -36,6 +37,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
   const { mutate: deleteVocab, isPending: isDeleting } = useAdminDeleteVocab();
   const [data, setData] = useState<OneWord>(initialData);
   const { getKnownStatus, toggleKnownStatus } = useOWSProgress();
+  const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const isKnown = getKnownStatus(data);
   const { user } = useAuth();
   const { showToast } = useNotification();
@@ -57,7 +59,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
       const { error } = await supabase
         .from("ows")
         .update({ image_url: url })
-        .eq("id", data.id);
+        .eq("id", data.db_id || data.id);
 
       if (error) throw error;
 
@@ -70,6 +72,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
       }));
 
       showToast({ title: "Success", message: "Image added successfully", variant: "success" });
+      updateCardImage(data.id, "ows", url);
     } catch (error: any) {
       console.error("Upload error:", error);
       showToast({ title: "Upload Failed", message: error.message || "Failed to upload image.", variant: "error" });
@@ -89,7 +92,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
       const { error } = await supabase
         .from("ows")
         .update({ image_url: null })
-        .eq("id", data.id);
+        .eq("id", data.db_id || data.id);
 
       if (error) throw error;
 
@@ -102,6 +105,7 @@ export const OWSCard: React.FC<OWSCardProps> = ({ data: initialData, serialNumbe
       }));
 
       showToast({ title: "Removed", message: "Image removed successfully", variant: "success" });
+      updateCardImage(data.id, "ows", undefined);
     } catch (error: any) {
       console.error("Remove error:", error);
       showToast({ title: "Failed", message: error.message || "Failed to remove image.", variant: "error" });

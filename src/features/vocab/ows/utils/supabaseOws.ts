@@ -128,6 +128,7 @@ export async function getFilteredOws(
 
   let parsedData = allData.map((row) => ({
     id: row.word || row.id, // Use word as spatial ID
+    db_id: String(row.id),
     sourceInfo: {
       pdfName: row.source_pdf || "Unknown",
       examYear: row.exam_year || 0,

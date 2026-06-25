@@ -3,6 +3,7 @@ import { SynonymWord } from '../../../../features/quiz/types';
 import { useSynonymProgress } from '../hooks/useSynonymProgress';
 import { cn } from '../../../../utils/cn';
 import { useState, useEffect } from 'react';
+import { useFlashcardStore } from '../../../../features/quiz/stores/useFlashcardStore';
 import { FlashcardImage } from '../../../../components/ui/FlashcardImage';
 import { useAuth } from '../../../../features/auth/context/AuthContext';
 import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
@@ -21,6 +22,7 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
   const { mutate: deleteVocab, isPending: isDeleting } = useAdminDeleteVocab();
   const [data, setData] = useState<SynonymWord>(initialData);
   const { markMastered, getStatus } = useSynonymProgress();
+  const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const status = getStatus(data);
   const { user } = useAuth();
   const { showToast } = useNotification();
@@ -52,6 +54,7 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
       }));
 
       showToast({ title: "Success", message: "Image added successfully", variant: "success" });
+      updateCardImage(data.id, "synonyms", url);
     } catch (error: any) {
       console.error("Upload error:", error);
       showToast({ title: "Upload Failed", message: error.message || "Failed to upload image.", variant: "error" });
@@ -81,6 +84,7 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
       }));
 
       showToast({ title: "Removed", message: "Image removed successfully", variant: "success" });
+      updateCardImage(data.id, "synonyms", undefined);
     } catch (error: any) {
       console.error("Remove error:", error);
       showToast({ title: "Failed", message: error.message || "Failed to remove image.", variant: "error" });

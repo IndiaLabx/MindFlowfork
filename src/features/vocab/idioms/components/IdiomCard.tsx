@@ -4,6 +4,7 @@ import { Idiom } from '../../../../types/models';
 import { BookOpen, Lightbulb, Quote, RotateCw, CheckCircle2, Circle, ImagePlus, Trash2, Loader2 } from 'lucide-react';
 import { useIdiomProgress } from '../../idioms/hooks/useIdiomProgress';
 import { FlashcardImage } from '../../../../components/ui/FlashcardImage';
+import { useFlashcardStore } from '../../../../features/quiz/stores/useFlashcardStore';
 import { useAuth } from '../../../../features/auth/context/AuthContext';
 import { uploadMediaToCloudinary } from '../../../../services/mediaUploadService';
 import { supabase } from '../../../../lib/supabase';
@@ -34,6 +35,7 @@ interface IdiomCardProps {
 export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, serialNumber, isFlipped }) => {
   const { mutate: deleteVocab, isPending: isDeleting } = useAdminDeleteVocab();
   const { getKnownStatus, toggleKnownStatus } = useIdiomProgress();
+  const updateCardImage = useFlashcardStore((state) => state.updateCardImage);
   const [idiom, setIdiom] = useState<Idiom>(initialIdiom);
   const isKnown = getKnownStatus(idiom);
 
@@ -82,6 +84,7 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
       }));
 
       showToast({ title: 'Success', message: 'Image uploaded and attached!', variant: 'success' });
+      updateCardImage(idiom.id, "idioms", url);
     } catch (error: any) {
       console.error("Upload error:", error);
       showToast({ title: 'Upload Failed', message: error.message || 'Failed to upload image.', variant: 'error' });
@@ -113,6 +116,7 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
       }));
 
       showToast({ title: 'Removed', message: 'Image removed successfully', variant: 'success' });
+      updateCardImage(idiom.id, "idioms", undefined);
     } catch (error: any) {
       console.error("Remove error:", error);
       showToast({ title: 'Failed', message: error.message || 'Failed to remove image.', variant: 'error' });
