@@ -115,7 +115,94 @@ export const deckService = {
       .order('sort_order', { ascending: true });
 
     if (error) throw error;
-    return data.map((d: any) => d.word);
+
+    return data.map((d: any) => {
+      const row = d.word;
+
+      if (vocabType === 'idiom') {
+        return {
+          id: String(row.id),
+          sourceInfo: {
+            pdfName: row.source_pdf || 'Unknown',
+            examYear: row.exam_year || 0
+          },
+          properties: {
+            difficulty: row.difficulty || 'Medium',
+            status: row.status || 'active'
+          },
+          content: {
+            image_url: row.image_url || undefined,
+            phrase: row.phrase || '',
+            meanings: {
+              english: row.meaning_english || '',
+              hindi: row.meaning_hindi || ''
+            },
+            usage: row.usage || '',
+            extras: {
+              mnemonic: row.mnemonic || '',
+              origin: ''
+            }
+          }
+        };
+      }
+
+      if (vocabType === 'ows') {
+        return {
+          id: row.word || row.id,
+          db_id: String(row.id),
+          sourceInfo: {
+            pdfName: row.source_pdf || "Unknown",
+            examYear: row.exam_year || 0,
+          },
+          properties: {
+            difficulty: row.difficulty || "Medium",
+            status: row.status || "active",
+            theme: row.theme || undefined,
+            importance_score: row.importance_score || undefined,
+            repetition_count: row.repetition_count || undefined,
+          },
+          content: {
+            id: row.id ? parseInt(String(row.id).replace(/[^0-9]/g, "")) || 0 : 0,
+            image_url: row.image_url || undefined,
+            pos: row.pos || "",
+            word: row.word || "",
+            meaning_en: row.meaning_english || "",
+            meaning_hi: row.meaning_hindi || "",
+            usage_sentences:
+              typeof row.usage_sentences === "string"
+                ? JSON.parse(row.usage_sentences)
+                : row.usage_sentences || [],
+            note: "",
+            origin: "",
+          },
+        };
+      }
+
+      if (vocabType === 'synonym') {
+        return {
+          id: row.id,
+          word: row.word || "",
+          pos: row.pos || "",
+          meaning: row.meaning || "",
+          hindiMeaning: row.meaning_hi || "",
+          synonyms: typeof row.synonyms === 'string' ? JSON.parse(row.synonyms) : row.synonyms || [],
+          antonyms: typeof row.antonyms === 'string' ? JSON.parse(row.antonyms) : row.antonyms || [],
+          theme: row.theme || "",
+          cluster_id: row.cluster_id || "",
+          repetition_raw: row.repetition_raw || "",
+          importance_score: row.importance_score || 0,
+          lifetime_frequency: row.lifetime_frequency || 0,
+          recent_trend: row.recent_trend || 0,
+          confusable_with: typeof row.confusable_with === 'string' ? JSON.parse(row.confusable_with) : row.confusable_with || [],
+          usage_sentences: typeof row.usage_sentences === 'string' ? JSON.parse(row.usage_sentences) : row.usage_sentences || [],
+          exam_name: row.exam_name || "",
+          exam_year: row.exam_year || 0,
+          difficulty: row.difficulty || "Medium"
+        };
+      }
+
+      return row;
+    });
   },
 
   // SAVE DECK ANSWERS
