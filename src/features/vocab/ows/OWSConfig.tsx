@@ -8,6 +8,7 @@ import { MultiSelectDropdown } from '../../../features/quiz/components/ui/MultiS
 import { SegmentedControl } from '../../../features/quiz/components/ui/SegmentedControl';
 import { ActiveFiltersBar } from '../../../features/quiz/components/ui/ActiveFiltersBar';
 import { cn } from '../../../utils/cn';
+import { db } from '../../../lib/db';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { fetchOwsMetadata, getFilteredOws } from './utils/supabaseOws';
 import { useAuth } from '../../../features/auth/context/AuthContext';
@@ -62,8 +63,19 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     useEffect(() => {
         const initConfig = async () => {
             try {
+                // 1. Instantly load from IndexedDB cache (Stale-While-Revalidate)
+                const cachedMetadata = await db.getOwsMetadataCache();
+                if (cachedMetadata && cachedMetadata.length > 0) {
+                    setMetadata(cachedMetadata);
+                    setIsInitializing(false); // Instantly render UI
+                }
+
+                // 2. Fetch fresh data in the background (or foreground if no cache)
                 const meta = await fetchOwsMetadata();
+
+                // 3. Update React State & Cache
                 setMetadata(meta);
+                await db.saveOwsMetadataCache(meta);
             } catch (e) {
                 console.error("Error initializing OWS configs", e);
             } finally {
