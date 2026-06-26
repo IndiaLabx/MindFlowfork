@@ -74,14 +74,24 @@ export async function fetchIdiomMetadata() {
             const rowId = String(row.id);
             const localInteraction = interactMap.get(rowId);
 
+
+            // Handle RPC mapping mismatches: Sometimes RPCs return aliased columns
+            // based on the query, so we check both camelCase and snake_case variants.
+            const phrase = row.phrase || row.word || '';
+            const sourceName = row.source_pdf || row.sourceName || row.examName || 'Unknown';
+            const examYear = row.exam_year || row.examYear || '';
+            const difficulty = row.difficulty || 'Medium';
+            const isRead = row.is_read || row.isRead;
+            const imageUrl = row.image_url || row.imageUrl;
+
             return {
                 id: rowId,
-                alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
-                examName: row.source_pdf || 'Unknown',
-                examYear: String(row.exam_year || ''),
-                difficulty: row.difficulty || 'Medium',
-                knownStatus: (localInteraction?.is_read ?? row.is_read) ? 'known' : 'unknown',
-                hasPhoto: row.image_url ? ('With Photo' as const) : ('Without Photo' as const),
+                alphabet: phrase ? phrase.charAt(0).toUpperCase() : '',
+                examName: sourceName,
+                examYear: String(examYear),
+                difficulty: difficulty,
+                knownStatus: (localInteraction?.is_read ?? isRead) ? 'known' : 'unknown',
+                hasPhoto: imageUrl ? ('With Photo' as const) : ('Without Photo' as const),
                 status: localInteraction?.status ?? row.status,
                 next_review_at: localInteraction?.next_review_at ?? row.next_review_at
             };
@@ -117,14 +127,22 @@ export async function fetchIdiomMetadata() {
     }
 
     return allData.map(row => {
+
+        const phrase = row.phrase || row.word || '';
+        const sourceName = row.source_pdf || row.sourceName || row.examName || 'Unknown';
+        const examYear = row.exam_year || row.examYear || '';
+        const difficulty = row.difficulty || 'Medium';
+        const isRead = row.is_read || row.isRead;
+        const imageUrl = row.image_url || row.imageUrl;
+
         return {
             id: String(row.id),
-            alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
-            examName: row.source_pdf || 'Unknown',
-            examYear: String(row.exam_year || ''),
-            difficulty: row.difficulty || 'Medium',
+            alphabet: phrase ? phrase.charAt(0).toUpperCase() : '',
+            examName: sourceName,
+            examYear: String(examYear),
+            difficulty: difficulty,
             knownStatus: 'unknown',
-            hasPhoto: row.image_url ? ('With Photo' as const) : ('Without Photo' as const)
+            hasPhoto: imageUrl ? ('With Photo' as const) : ('Without Photo' as const)
         };
     });
 }
