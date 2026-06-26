@@ -8,28 +8,13 @@ export async function fetchIdiomMetadata() {
     if (userId) {
 
         let allRpcData: any[] = [];
-        let rpcStart = 0;
-        const rpcLimit = 1000;
-        let rpcHasMore = true;
+        // Fetch all rows in a single network request to prevent waterfall latency
+        const { data, error } = await supabase.rpc('get_filtered_idiom_metadata', { p_user_id: userId });
 
-        while (rpcHasMore) {
-            const { data, error } = await supabase.rpc('get_filtered_idiom_metadata', { p_user_id: userId })
-                .range(rpcStart, rpcStart + rpcLimit - 1);
-
-            if (error) {
-                console.error("Error fetching Idiom metadata via RPC:", error);
-                break;
-            }
-
-            if (data && data.length > 0) {
-                allRpcData = [...allRpcData, ...data];
-                rpcStart += rpcLimit;
-                if (data.length < rpcLimit) {
-                    rpcHasMore = false;
-                }
-            } else {
-                rpcHasMore = false;
-            }
+        if (error) {
+            console.error("Error fetching Idiom metadata via RPC:", error);
+        } else if (data) {
+            allRpcData = data;
         }
 
 

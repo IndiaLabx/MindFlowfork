@@ -33,7 +33,7 @@ export interface OWSInteraction {
 }
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
@@ -43,6 +43,7 @@ const CHAT_MESSAGES_STORE = 'chat_messages';
 const ACTIVE_SESSION_STORE = 'active_test_session';
 const OWS_STORE_NAME = 'ows_interactions';
 const IDIOM_STORE_NAME = 'idiom_interactions';
+const IDIOM_METADATA_STORE = 'idiom_metadata_cache';
 
 /**
  * Opens a connection to the IndexedDB database.
@@ -82,6 +83,9 @@ const openDB = (): Promise<IDBDatabase> => {
             }
             if (!db.objectStoreNames.contains(IDIOM_STORE_NAME)) {
                 db.createObjectStore(IDIOM_STORE_NAME, { keyPath: 'idiomId' });
+            }
+            if (!db.objectStoreNames.contains(IDIOM_METADATA_STORE)) {
+                db.createObjectStore(IDIOM_METADATA_STORE, { keyPath: 'id' });
             }
         };
 
@@ -642,6 +646,43 @@ export const db = {
             const request = store.clear();
 
             request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+
+    /**
+     * Saves Idiom Metadata to cache.
+     */
+    saveIdiomMetadataCache: async (metadata: any[]): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(IDIOM_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(IDIOM_METADATA_STORE);
+
+            // Clear existing before adding new
+            store.clear();
+
+            metadata.forEach(item => {
+                store.put(item);
+            });
+
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    },
+
+    /**
+     * Retrieves Idiom Metadata from cache.
+     */
+    getIdiomMetadataCache: async (): Promise<any[]> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(IDIOM_METADATA_STORE, 'readonly');
+            const store = transaction.objectStore(IDIOM_METADATA_STORE);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     },
