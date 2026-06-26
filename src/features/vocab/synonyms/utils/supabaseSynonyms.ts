@@ -1,3 +1,4 @@
+import { db } from '../../../../lib/db';
 import { supabase } from '../../../../lib/supabase';
 import { InitialFilters } from '../../../../types/models';
 import { SynonymWord } from '../../../../features/quiz/types';

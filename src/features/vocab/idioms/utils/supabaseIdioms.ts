@@ -1,3 +1,4 @@
+import { db } from '../../../../lib/db';
 import { supabase } from '../../../../lib/supabase';
 import { Idiom, InitialFilters } from '../../../../types/models';
 
@@ -8,13 +9,43 @@ export async function fetchIdiomMetadata() {
     if (userId) {
 
         let allRpcData: any[] = [];
-        // Fetch all rows in a single network request to prevent waterfall latency
-        const { data, error } = await supabase.rpc('get_filtered_idiom_metadata', { p_user_id: userId });
+
+        // 1. Get last sync time
+        const lastSync = localStorage.getItem('idiom_last_sync');
+
+        // 2. Fetch only deltas from RPC
+        const { data: deltaData, error } = await supabase.rpc('get_filtered_idiom_metadata', {
+            p_user_id: userId,
+            p_last_sync: lastSync || null
+        });
 
         if (error) {
             console.error("Error fetching Idiom metadata via RPC:", error);
-        } else if (data) {
-            allRpcData = data;
+        } else if (deltaData) {
+
+            // 3. Merge Deltas with Cache
+            if (lastSync && deltaData.length > 0) {
+                 const cachedData = await db.getIdiomMetadataCache();
+                 const cachedMap = new Map(cachedData.map(item => [item.id, item]));
+
+                 // Overwrite with newer delta rows
+                 deltaData.forEach((item: any) => {
+                     cachedMap.set(item.id, item);
+                 });
+
+                 allRpcData = Array.from(cachedMap.values());
+            } else if (!lastSync) {
+                 // First ever sync
+                 allRpcData = deltaData;
+            } else {
+                 // No new deltas
+                 allRpcData = await db.getIdiomMetadataCache();
+            }
+
+            // 4. Update sync timestamp if successful
+            if (!error && deltaData && deltaData.length > 0 || !lastSync) {
+                localStorage.setItem('idiom_last_sync', new Date().toISOString());
+            }
         }
 
 
