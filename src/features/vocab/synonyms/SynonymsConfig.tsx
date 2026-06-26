@@ -30,7 +30,9 @@ const emptyFilters: InitialFilters = {
     examDateShift: [],
     tags: [],
     knownStatus: [],
-    reviewModeStatus: ['Unseen']
+    reviewModeStatus: ['Unseen'],
+    theme: [],
+    hasPhoto: []
 };
 
 export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack }) => {
@@ -69,8 +71,7 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
         index
     });
 
-    const availableExamNames = Object.keys(index.examName || {}).sort();
-    const availableExamYears = Object.keys(index.examYear || {}).sort();
+    const availableThemes = Object.keys(index.theme || {}).sort();
 
         const handleResetProgress = async () => {
         if (window.confirm(`Are you sure you want to reset your ${sessionMode === 'basic' ? 'Basic Mode' : 'Review Mode'} progress? This action cannot be undone.`)) {
@@ -264,90 +265,35 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
                         </div>
                     </div>
 
-                    {/* Source Name Card */}
+                    {/* Theme Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
-                            <FileText className="w-4 h-4" /> Source Material
+                            <FileText className="w-4 h-4" /> Theme
                         </div>
                         <MultiSelectDropdown
-                            label="Source Name"
-                            options={availableExamNames}
-                            selectedOptions={filters.examName}
-                            onSelectionChange={(sel) => handleFilterChange('examName', sel)}
-                            placeholder="Select Source (e.g. Blackbook)"
-                            counts={filterCounts.examName}
+                            label="Theme"
+                            options={availableThemes}
+                            selectedOptions={filters.theme || []}
+                            onSelectionChange={(sel) => handleFilterChange('theme', sel)}
+                            placeholder="Select Theme"
+                            counts={filterCounts.theme || {}}
                         />
                     </div>
 
-                    {/* Exam Year Card */}
+                    {/* Has Photo Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
-                            <Calendar className="w-4 h-4" /> Exam Year
+                            <Settings className="w-4 h-4" /> Media
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {availableExamYears.map(year => {
-                                const isSelected = filters.examYear.includes(year);
-                                const count = filterCounts.examYear?.[year] || 0;
-                                const isDisabled = count === 0 && !isSelected;
-                                return (
-                                    <button
-                                        key={year}
-                                        disabled={isDisabled}
-                                        onClick={() => setFilters(prev => {
-                                            const current = prev.examYear;
-                                            return { ...prev, examYear: current.includes(year) ? current.filter(y => y !== year) : [...current, year] };
-                                        })}
-                                        className={cn(
-                                            "px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border select-none",
-                                            isSelected
-                                                ? "bg-teal-100 text-teal-900 border-teal-300 ring-1 ring-teal-300"
-                                                : isDisabled
-                                                ? "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 border-slate-100 dark:border-slate-800 cursor-not-allowed"
-                                                : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:bg-slate-800 hover:border-slate-300 dark:border-slate-600"
-                                        )}
-                                    >
-                                        <span>{year}</span>
-                                        {count > 0 && <span className="text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full">{count}</span>}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        <SegmentedControl
+                            options={['With Photo', 'Without Photo']}
+                            selectedOptions={filters.hasPhoto || []}
+                            onOptionToggle={(opt) => handleFilterChange('hasPhoto', (filters.hasPhoto || []).includes(opt as any) ? (filters.hasPhoto || []).filter(i => i !== opt) : [...(filters.hasPhoto || []), opt as any])}
+                            counts={filterCounts.hasPhoto || {}}
+                        />
                     </div>
 
-
-                    {sessionMode === 'review' && (
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
-                            <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
-                                <CheckCircle className="w-4 h-4" /> Review Mode Status
-                            </div>
-                            <SegmentedControl
-                                options={['Unseen', 'Mastered', 'Review', 'Clueless', 'Tricky']}
-                                selectedOptions={filters.reviewModeStatus || ['Unseen']}
-                                onOptionToggle={(opt) => setFilters(prev => ({ ...prev, reviewModeStatus: [opt as "Unseen" | "Mastered" | "Review" | "Clueless" | "Tricky"] }))}
-                                counts={filterCounts.reviewModeStatus || {}}
-                            />
-                        </div>
-                    )}
-
-                    {/* Known Status Card */}
-                    {sessionMode === 'basic' && (
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
-                            <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
-                                <CheckCircle className="w-4 h-4" /> Known Status
-                            </div>
-                            <SegmentedControl
-                                options={['known', 'unknown']}
-                                selectedOptions={filters.knownStatus || []}
-                                onOptionToggle={(opt) => setFilters(prev => {
-                                    const current = prev.knownStatus || [];
-                                    return { ...prev, knownStatus: current.includes(opt as any) ? current.filter(i => i !== opt) : [...current, opt as any] };
-                                })}
-                                counts={filterCounts.knownStatus || {}}
-                            />
-                        </div>
-                    )}
-
-                    {/* Difficulty Card */}
+                    {/* Review Mode Status Card */}
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
                         <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
                             <Settings className="w-4 h-4" /> Difficulty Level

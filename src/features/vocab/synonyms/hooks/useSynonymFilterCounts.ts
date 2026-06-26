@@ -4,17 +4,21 @@ import { InitialFilters } from '../../../../types/models';
 export type SynonymMetadata = {
     id: string;
     alphabet: string;
-    examName: string;
-    examYear: string;
-    difficulty: string;
+    theme: string;
+    cluster_id: string;
+    repetition_raw: string;
+    importance_score: string;
+    lifetime_frequency: string;
+    recent_trend: string;
+    hasPhoto: "With Photo" | "Without Photo";
     knownStatus: string;
     status?: string;
     next_review_at?: string;
     reviewModeStatus?: string;
 };
 
-type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'knownStatus' | 'reviewModeStatus';
-const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'knownStatus', 'reviewModeStatus'];
+type FilterKeys = 'alphabet' | 'theme' | 'knownStatus' | 'reviewModeStatus' | 'hasPhoto';
+const filterKeys: FilterKeys[] = ['alphabet', 'theme', 'knownStatus', 'reviewModeStatus', 'hasPhoto'];
 
 
 export function useSynonymQuestionIndex(metadata: SynonymMetadata[]) {
