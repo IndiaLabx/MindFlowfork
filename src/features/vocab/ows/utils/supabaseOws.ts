@@ -74,15 +74,21 @@ export async function fetchOwsMetadata() {
       const rowId = row.word || String(row.id);
       const localInteraction = interactMap.get(rowId);
 
+      const phrase = row.word || row.phrase || "";
+      const sourceName = row.source_pdf || row.sourceName || row.examName || "Unknown";
+      const examYear = row.exam_year || row.examYear || "";
+      const difficulty = row.difficulty || row.difficulty || "Medium";
+      const isRead = row.is_read || row.isRead;
+      const imageUrl = row.image_url || row.imageUrl;
       return {
         id: rowId,
-        alphabet: row.word ? row.word.charAt(0).toUpperCase() : "",
-        examName: row.source_pdf || "Unknown",
-        examYear: String(row.exam_year || ""),
-        difficulty: row.difficulty || "Medium",
+        alphabet: phrase ? phrase.charAt(0).toUpperCase() : "",
+        examName: sourceName,
+        examYear: String(examYear),
+        difficulty: difficulty,
         theme: row.theme || "",
-        hasPhoto: row.image_url ? ("With Photo" as const) : ("Without Photo" as const),
-        knownStatus: (localInteraction?.is_read ?? row.is_read) ? "known" : "unknown",
+        hasPhoto: imageUrl ? ("With Photo" as const) : ("Without Photo" as const),
+        knownStatus: (localInteraction?.is_read ?? isRead) ? "known" : "unknown",
         status: localInteraction?.status ?? row.status,
         next_review_at: localInteraction?.next_review_at ?? row.next_review_at,
       };
@@ -118,14 +124,19 @@ export async function fetchOwsMetadata() {
   }
 
   return allData.map((row) => {
+    const phrase = row.word || row.phrase || "";
+    const sourceName = row.source_pdf || row.sourceName || row.examName || "Unknown";
+    const examYear = row.exam_year || row.examYear || "";
+    const difficulty = row.difficulty || row.difficulty || "Medium";
+    const imageUrl = row.image_url || row.imageUrl;
     return {
       id: row.word || String(row.id),
-      alphabet: row.word ? row.word.charAt(0).toUpperCase() : "",
-      examName: row.source_pdf || "Unknown",
-      examYear: String(row.exam_year || ""),
-      difficulty: row.difficulty || "Medium",
+      alphabet: phrase ? phrase.charAt(0).toUpperCase() : "",
+      examName: sourceName,
+      examYear: String(examYear),
+      difficulty: difficulty,
       theme: row.theme || "",
-      hasPhoto: row.image_url ? ("With Photo" as const) : ("Without Photo" as const),
+      hasPhoto: imageUrl ? ("With Photo" as const) : ("Without Photo" as const),
       knownStatus: "unknown",
     };
   });

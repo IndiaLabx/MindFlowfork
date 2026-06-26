@@ -55,15 +55,22 @@ export async function fetchSynonymMetadata() {
   return allData.map((row) => {
     const rowId = row.word || String(row.id); // Using word as fallback word_id
     const interaction = userInteractions[rowId];
+
+    const phrase = row.word || row.phrase || "";
+    const sourceName = row.exam_name || row.examName || row.source_pdf || row.sourceName || "Unknown";
+    const examYear = row.exam_year || row.examYear || "";
+    const difficulty = row.difficulty || row.difficulty || "Medium";
+    const isRead = row.is_read || row.isRead;
+
     return {
       id: rowId, // Return word_id for spatial mapping
-      alphabet: row.word ? row.word.charAt(0).toUpperCase() : "",
-      examName: row.exam_name || "Unknown",
-      examYear: String(row.exam_year || ""),
-      difficulty: row.difficulty || "Medium",
-      knownStatus: interaction?.is_read ? "known" : "unknown",
-      status: interaction?.status,
-      next_review_at: interaction?.next_review_at,
+      alphabet: phrase ? phrase.charAt(0).toUpperCase() : "",
+      examName: sourceName,
+      examYear: String(examYear),
+      difficulty: difficulty,
+      knownStatus: (interaction?.is_read ?? isRead) ? "known" : "unknown",
+      status: interaction?.status ?? row.status,
+      next_review_at: interaction?.next_review_at ?? row.next_review_at,
     };
   });
 }

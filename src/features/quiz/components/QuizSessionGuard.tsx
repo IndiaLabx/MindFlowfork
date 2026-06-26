@@ -173,15 +173,25 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
         const currentIndex = state.currentQuestionIndex;
         const total = state.activeQuestions.length;
 
-        // If we are getting close to the edge of our hydrated window, fetch more
-        const nextBatchStartIndex = currentIndex + PREFETCH_THRESHOLD;
-
-        // Find the next chunk of questions that haven't been hydrated yet
-        const questionsToHydrate = state.activeQuestions
-             .slice(currentIndex, currentIndex + WINDOW_SIZE)
+        // Find how many unhydrated questions are left in our lookahead window
+        const lookaheadEnd = Math.min(currentIndex + WINDOW_SIZE, total);
+        const unhydratedInWindow = state.activeQuestions
+             .slice(currentIndex, lookaheadEnd)
              .filter(q => !q.question && !hydratedIdsRef.current.has(q.id));
 
-        if (questionsToHydrate.length > 0) {
+        // If we drop below our threshold of hydrated questions ahead of us,
+        // OR we are missing questions we currently need, trigger a batch fetch.
+        // We fetch the entire next WINDOW_SIZE chunk of unhydrated questions.
+        const hydratedAheadCount = (lookaheadEnd - currentIndex) - unhydratedInWindow.length;
+
+        if (hydratedAheadCount <= PREFETCH_THRESHOLD || unhydratedInWindow.length > 0) {
+            // Find the NEXT 50 unhydrated questions to batch fetch, starting from current index
+            const questionsToHydrate = state.activeQuestions
+                .slice(currentIndex, currentIndex + (WINDOW_SIZE * 2)) // Look a bit further to grab a full batch
+                .filter(q => !q.question && !hydratedIdsRef.current.has(q.id))
+                .slice(0, WINDOW_SIZE); // Only take WINDOW_SIZE amount at a time
+
+            if (questionsToHydrate.length === 0) return;
             const idsToFetch = questionsToHydrate.map(q => q.id);
 
             // Optimistically mark as hydrating to prevent duplicate calls
