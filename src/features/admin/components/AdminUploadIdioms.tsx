@@ -26,6 +26,7 @@ interface IdiomForm {
     difficulty: string;
     status: string;
     image_url?: string;
+    origin?: string;
 }
 
 const initialFormState: IdiomForm = {
@@ -35,6 +36,7 @@ const initialFormState: IdiomForm = {
     meaning_hindi: '',
     usage: '',
     mnemonic: '',
+    origin: '',
     source_pdf: 'TCS PYQ',
     exam_year: new Date().getFullYear().toString(),
     difficulty: 'Medium',
@@ -202,6 +204,7 @@ export const AdminUploadIdioms: React.FC = () => {
                 meaning_hindi: data.meaning_hindi || '',
                 usage: data.usage || '',
                 mnemonic: data.mnemonic || '',
+                origin: data.origin || '',
                 source_pdf: data.source_pdf || '',
                 exam_year: data.exam_year ? data.exam_year.toString() : '',
                 difficulty: data.difficulty || 'Medium',
@@ -458,7 +461,7 @@ export const AdminUploadIdioms: React.FC = () => {
                             <textarea
                                 value={bulkJson}
                                 onChange={handleBulkJsonChange}
-                                placeholder='[\n  {\n    "phrase": "Bite the bullet",\n    "meaning_english": "To endure a painful or otherwise unpleasant situation that is seen as unavoidable.",\n    "meaning_hindi": "मुसीबत का सामना करना",\n    "usage": "I hate going to the dentist, but I will just have to bite the bullet.",\n    "mnemonic": "Imagine biting a bullet during surgery without anesthesia.",\n    "source_pdf": "SSC CGL 2023",\n    "exam_year": 2023\n  }\n]'
+                                placeholder='[\n  {\n    "phrase": "Bite the bullet",\n    "meaning_english": "To endure a painful or otherwise unpleasant situation that is seen as unavoidable.",\n    "meaning_hindi": "मुसीबत का सामना करना",\n    "usage": "I hate going to the dentist, but I will just have to bite the bullet.",\n    "mnemonic": "Imagine biting a bullet during surgery without anesthesia.",\n    "origin": "From an old military practice",\n    "source_pdf": "SSC CGL 2023",\n    "exam_year": 2023\n  }\n]'
                                 rows={15}
                                 className={`w-full bg-slate-900 text-green-400 font-mono text-sm rounded-xl px-4 py-4 outline-none focus:ring-2 transition-shadow resize-y shadow-inner ${bulkJson && !bulkValidation.isValid ? 'border border-red-500 focus:ring-red-500' : 'border border-slate-700 focus:ring-amber-500'}`}
                             />
@@ -580,6 +583,12 @@ export const AdminUploadIdioms: React.FC = () => {
                                         <textarea name="mnemonic" value={formData.mnemonic} onChange={handleChange} rows={3} placeholder="Memory trick..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
                                     </div>
                                 </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Origin</label>
+                                        <textarea name="origin" value={formData.origin || ''} onChange={handleChange} rows={2} placeholder="Historical origin or background..." className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none resize-none text-base" />
+                                    </div>
+
 
                                 {/* Image Upload Component */}
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">

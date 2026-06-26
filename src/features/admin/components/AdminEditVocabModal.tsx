@@ -29,6 +29,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           meaning_hindi: cardData.content?.meanings?.hindi || '',
           usage: cardData.content?.usage || '',
           mnemonic: cardData.content?.extras?.mnemonic || '',
+          origin: cardData.content?.extras?.origin || '',
           difficulty: cardData.properties?.difficulty || '',
           source_pdf: cardData.sourceInfo?.pdfName || '',
           exam_year: cardData.sourceInfo?.examYear || '',
