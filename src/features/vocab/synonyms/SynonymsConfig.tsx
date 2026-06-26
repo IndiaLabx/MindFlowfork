@@ -64,7 +64,7 @@ export const SynonymsConfig: React.FC<SynonymsConfigProps> = ({ onStart, onBack 
     const index = useSynonymQuestionIndex(metadata);
     const { counts: filterCounts, totalMatchingCount, finalMatchingIds } = useSynonymFilterCounts({
         metadata,
-        selectedFilters: filters,
+        selectedFilters: sessionMode === 'basic' ? { ...filters, reviewModeStatus: [] } : filters,
         selectedAlphabet: selectedLetter,
         index
     });

@@ -67,7 +67,7 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     const index = useIdiomQuestionIndex(metadata);
     const { counts: filterCounts, totalMatchingCount, finalMatchingIds } = useIdiomFilterCounts({
         metadata,
-        selectedFilters: filters,
+        selectedFilters: sessionMode === 'basic' ? { ...filters, reviewModeStatus: [] } : filters,
         selectedAlphabet: selectedLetter,
         index
     });

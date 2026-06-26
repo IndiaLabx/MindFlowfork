@@ -75,7 +75,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const index = useOwsQuestionIndex(metadata);
     const { counts: filterCounts, totalMatchingCount, finalMatchingIds } = useOwsFilterCounts({
         metadata,
-        selectedFilters: filters,
+        selectedFilters: sessionMode === 'basic' ? { ...filters, reviewModeStatus: [] } : filters,
         selectedAlphabet: selectedLetter,
         index
     });
