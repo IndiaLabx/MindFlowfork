@@ -98,9 +98,9 @@ export async function getFilteredIdioms(filters: InitialFilters, selectedLetter:
     }
     if (filters.hasPhoto && filters.hasPhoto.length === 1) {
         if (filters.hasPhoto[0] === 'With Photo') {
-            query = query.not('image_url', 'is', null);
+            query = query.neq('image_url', '').not('image_url', 'is', null);
         } else if (filters.hasPhoto[0] === 'Without Photo') {
-            query = query.is('image_url', null);
+            query = query.or('image_url.is.null,image_url.eq.""');
         }
     }
 
