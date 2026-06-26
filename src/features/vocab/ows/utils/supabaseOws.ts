@@ -2,6 +2,58 @@ import { supabase } from '../../../../lib/supabase';
 import { OneWord, InitialFilters } from '../../../../types/models';
 
 export async function fetchOwsMetadata() {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+
+  if (userId) {
+    const { data, error } = await supabase.rpc('get_filtered_ows_metadata', { p_user_id: userId });
+
+    if (error) {
+      console.error("Error fetching OWS metadata via RPC:", error);
+      return [];
+    }
+
+    // Process local queue logic as before (optimistic offline state)
+    const interactMap = new Map();
+    try {
+      if (typeof window !== 'undefined') {
+        const localQueueStr = localStorage.getItem('ows_swipe_queue');
+        if (localQueueStr) {
+          const localQueue = JSON.parse(localQueueStr);
+          localQueue.forEach((item: any) => {
+            const id = String(item.word_id);
+            const current = interactMap.get(id) || {};
+            if (item.status !== undefined) current.status = item.status;
+            if (item.known_ows !== undefined) current.is_read = item.known_ows;
+            if (item.next_review !== undefined) current.next_review_at = item.next_review;
+            interactMap.set(id, current);
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to merge local queue for OWS', e);
+    }
+
+    return data.map((row: any) => {
+      const rowId = row.word || String(row.id);
+      const localInteraction = interactMap.get(rowId);
+
+      return {
+        id: rowId,
+        alphabet: row.word ? row.word.charAt(0).toUpperCase() : "",
+        examName: row.source_pdf || "Unknown",
+        examYear: String(row.exam_year || ""),
+        difficulty: row.difficulty || "Medium",
+        theme: row.theme || "",
+        hasPhoto: row.image_url ? ("With Photo" as const) : ("Without Photo" as const),
+        knownStatus: (localInteraction?.is_read ?? row.is_read) ? "known" : "unknown",
+        status: localInteraction?.status ?? row.status,
+        next_review_at: localInteraction?.next_review_at ?? row.next_review_at,
+      };
+    });
+  }
+
+  // Fallback for unauthenticated users (if any)
   let allData: any[] = [];
   let start = 0;
   const limit = 1000;
@@ -10,7 +62,7 @@ export async function fetchOwsMetadata() {
   while (hasMore) {
     const { data, error } = await supabase
       .from("ows")
-      .select("id, word, source_pdf, exam_year, difficulty, theme")
+      .select("id, word, source_pdf, exam_year, difficulty, theme, image_url")
       .range(start, start + limit - 1);
 
     if (error) {
@@ -29,57 +81,20 @@ export async function fetchOwsMetadata() {
     }
   }
 
-  // Fetch user interactions for read status and spatial engine
-  const { data: userData } = await supabase.auth.getUser();
-  let userInteractions: Record<string, any> = {};
-
-  if (userData?.user) {
-    const { data: interactions, error: intError } = await supabase
-      .from("user_ows_interactions")
-      .select("word_id, is_read, status, next_review_at")
-      .eq("user_id", userData.user.id);
-
-    if (!intError && interactions) {
-      interactions.forEach((int) => {
-        userInteractions[String(int.word_id)] = int;
-      });
-    }
-
-    try {
-      if (typeof window !== 'undefined') {
-        const localQueueStr = localStorage.getItem('ows_swipe_queue');
-        if (localQueueStr) {
-          const localQueue = JSON.parse(localQueueStr);
-          localQueue.forEach((item: any) => {
-            const id = String(item.word_id);
-            if (!userInteractions[id]) userInteractions[id] = {};
-            if (item.status !== undefined) userInteractions[id].status = item.status;
-            if (item.known_ows !== undefined) userInteractions[id].is_read = item.known_ows;
-            if (item.next_review !== undefined) userInteractions[id].next_review_at = item.next_review;
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to merge local queue for OWS', e);
-    }
-  }
-
   return allData.map((row) => {
-    const rowId = row.word || String(row.id); // Using word as fallback word_id
-    const interaction = userInteractions[rowId];
     return {
-      id: rowId, // Return word_id for spatial mapping
+      id: row.word || String(row.id),
       alphabet: row.word ? row.word.charAt(0).toUpperCase() : "",
       examName: row.source_pdf || "Unknown",
       examYear: String(row.exam_year || ""),
       difficulty: row.difficulty || "Medium",
       theme: row.theme || "",
-      knownStatus: interaction?.is_read ? "known" : "unknown",
-      status: interaction?.status,
-      next_review_at: interaction?.next_review_at,
+      hasPhoto: row.image_url ? ("With Photo" as const) : ("Without Photo" as const),
+      knownStatus: "unknown",
     };
   });
 }
+
 
 export async function getFilteredOws(
   filters: InitialFilters,
@@ -109,6 +124,15 @@ export async function getFilteredOws(
     if (selectedLetter) {
       query = query.ilike("word", `${selectedLetter}%`);
     }
+
+    if (filters.hasPhoto && filters.hasPhoto.length === 1) {
+      if (filters.hasPhoto[0] === 'With Photo') {
+          query = query.neq('image_url', '').not('image_url', 'is', null);
+      } else if (filters.hasPhoto[0] === 'Without Photo') {
+          query = query.or('image_url.is.null,image_url.eq.""');
+      }
+    }
+
 
     const { data, error } = await query
       .range(start, start + limit - 1)

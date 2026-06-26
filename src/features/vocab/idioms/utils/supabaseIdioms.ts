@@ -2,6 +2,57 @@ import { supabase } from '../../../../lib/supabase';
 import { Idiom, InitialFilters } from '../../../../types/models';
 
 export async function fetchIdiomMetadata() {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+
+    if (userId) {
+        const { data, error } = await supabase.rpc('get_filtered_idiom_metadata', { p_user_id: userId });
+
+        if (error) {
+            console.error("Error fetching Idiom metadata via RPC:", error);
+            return [];
+        }
+
+        // Process local queue logic as before (optimistic offline state)
+        const interactMap = new Map();
+        try {
+            if (typeof window !== 'undefined') {
+                const localQueueStr = localStorage.getItem('idiom_swipe_queue');
+                if (localQueueStr) {
+                    const localQueue = JSON.parse(localQueueStr);
+                    localQueue.forEach((item: any) => {
+                        const id = String(item.idiom_id);
+                        const current = interactMap.get(id) || {};
+                        if (item.status !== undefined) current.status = item.status;
+                        if (item.known_idioms !== undefined) current.is_read = item.known_idioms;
+                        if (item.next_review !== undefined) current.next_review_at = item.next_review;
+                        interactMap.set(id, current);
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Failed to merge local queue for Idiom', e);
+        }
+
+        return data.map((row: any) => {
+            const rowId = String(row.id);
+            const localInteraction = interactMap.get(rowId);
+
+            return {
+                id: rowId,
+                alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
+                examName: row.source_pdf || 'Unknown',
+                examYear: String(row.exam_year || ''),
+                difficulty: row.difficulty || 'Medium',
+                knownStatus: (localInteraction?.is_read ?? row.is_read) ? 'known' : 'unknown',
+                hasPhoto: row.image_url ? ('With Photo' as const) : ('Without Photo' as const),
+                status: localInteraction?.status ?? row.status,
+                next_review_at: localInteraction?.next_review_at ?? row.next_review_at
+            };
+        });
+    }
+
+    // Fallback for unauthenticated users
     let allData: any[] = [];
     let start = 0;
     const limit = 1000;
@@ -29,57 +80,19 @@ export async function fetchIdiomMetadata() {
         }
     }
 
-    // Fetch user interactions for read status and spatial engine
-    const { data: userData } = await supabase.auth.getUser();
-    let userInteractions: Record<string, any> = {};
-
-    if (userData?.user) {
-        const { data: interactions, error: intError } = await supabase
-            .from('user_idiom_interactions')
-            .select('idiom_id, is_read, status, next_review_at')
-            .eq('user_id', userData.user.id);
-
-        if (!intError && interactions) {
-            interactions.forEach(int => {
-                 userInteractions[String(int.idiom_id)] = int;
-            });
-        }
-
-        try {
-            if (typeof window !== 'undefined') {
-                const localQueueStr = localStorage.getItem('idiom_swipe_queue');
-                if (localQueueStr) {
-                    const localQueue = JSON.parse(localQueueStr);
-                    localQueue.forEach((item: any) => {
-                        const id = String(item.idiom_id);
-                        if (!userInteractions[id]) userInteractions[id] = {};
-                        if (item.status !== undefined) userInteractions[id].status = item.status;
-                        if (item.known_ows !== undefined) userInteractions[id].is_read = item.known_ows;
-                        if (item.next_review !== undefined) userInteractions[id].next_review_at = item.next_review;
-                    });
-                }
-            }
-        } catch (e) {
-            console.error('Failed to merge local queue for Idiom', e);
-        }
-    }
-
     return allData.map(row => {
-        const rowId = String(row.id);
-        const interaction = userInteractions[rowId];
         return {
-            id: rowId,
+            id: String(row.id),
             alphabet: row.phrase ? row.phrase.charAt(0).toUpperCase() : '',
             examName: row.source_pdf || 'Unknown',
             examYear: String(row.exam_year || ''),
             difficulty: row.difficulty || 'Medium',
-            knownStatus: interaction?.is_read ? 'known' : 'unknown',
-            hasPhoto: row.image_url ? ('With Photo' as const) : ('Without Photo' as const),
-            status: interaction?.status,
-            next_review_at: interaction?.next_review_at
+            knownStatus: 'unknown',
+            hasPhoto: row.image_url ? ('With Photo' as const) : ('Without Photo' as const)
         };
     });
 }
+
 
 export async function getFilteredIdioms(filters: InitialFilters, selectedLetter: string | null, sessionMode?: 'basic' | 'review'): Promise<Idiom[]> {
     let query = supabase.from('idiom').select('*');

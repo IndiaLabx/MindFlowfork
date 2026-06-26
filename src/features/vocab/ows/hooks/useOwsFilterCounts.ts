@@ -12,10 +12,11 @@ export type OwsMetadata = {
     status?: string;
     next_review_at?: string;
     reviewModeStatus?: string;
+    hasPhoto?: "With Photo" | "Without Photo";
 };
 
-type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'theme' | 'knownStatus' | 'reviewModeStatus';
-const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'theme', 'knownStatus', 'reviewModeStatus'];
+type FilterKeys = 'alphabet' | 'examName' | 'examYear' | 'difficulty' | 'theme' | 'knownStatus' | 'reviewModeStatus' | 'hasPhoto';
+const filterKeys: FilterKeys[] = ['alphabet', 'examName', 'examYear', 'difficulty', 'theme', 'knownStatus', 'reviewModeStatus', 'hasPhoto'];
 
 
 export function useOwsQuestionIndex(metadata: OwsMetadata[]) {

@@ -1,6 +1,6 @@
 import { deckService } from "../services/deckService";
 import React, { useState, useEffect } from 'react';
-import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save } from 'lucide-react';
+import {  ArrowLeft, Play, Target, FileText, Settings, Calendar, Type, CheckCircle, Lock , Save , Image } from 'lucide-react';
 import { Button } from '../../../components/Button/Button';
 import { InitialFilters } from '../../../features/quiz/types';
 import { OneWord } from '../../../types/models';
@@ -36,6 +36,7 @@ const emptyFilters: InitialFilters = {
 
 export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
     const { user } = useAuth();
+    const isAdmin = user?.email === 'admin@mindflow.com';
     const { clearProgress } = useOWSProgress();
     const [deckName, setDeckName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -387,6 +388,21 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                             counts={filterCounts.difficulty}
                         />
                     </div>
+
+                    {/* Admin Has Photo Card */}
+                    {isAdmin && (
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-teal-100 border-l-4 border-l-teal-400 shadow-sm relative">
+                            <div className="flex items-center gap-2 mb-4 text-teal-800 font-bold text-sm uppercase tracking-wider">
+                                <Image className="w-4 h-4" /> Media Status (Admin Only)
+                            </div>
+                            <SegmentedControl
+                                options={['With Photo', 'Without Photo']}
+                                selectedOptions={filters.hasPhoto || []}
+                                onOptionToggle={(opt) => handleFilterChange('hasPhoto', (filters.hasPhoto || []).includes(opt as any) ? (filters.hasPhoto || []).filter(i => i !== opt) : [...(filters.hasPhoto || []), opt as any])}
+                                counts={filterCounts.hasPhoto || {}}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Active Filters Displayed above sticky footer area */}
