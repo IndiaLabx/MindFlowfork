@@ -11,7 +11,7 @@ export async function fetchSynonymMetadata() {
   while (hasMore) {
     const { data, error } = await supabase
       .from("synonym")
-      .select("id, word, repetition_raw, importance_score, lifetime_frequency, recent_trend, theme, cluster_id, image_url")
+      .select("id, word, exam_name, exam_year, difficulty")
       .range(start, start + limit - 1);
 
     if (error) {
@@ -71,13 +71,9 @@ export async function fetchSynonymMetadata() {
     return {
       id: rowId, // Return word_id for spatial mapping
       alphabet: row.word ? row.word.charAt(0).toUpperCase() : "",
-      theme: row.theme || "",
-      cluster_id: row.cluster_id || "",
-      repetition_raw: row.repetition_raw || "",
-      importance_score: String(row.importance_score || 0),
-      lifetime_frequency: String(row.lifetime_frequency || 0),
-      recent_trend: String(row.recent_trend || 0),
-      hasPhoto: (row.image_url ? "With Photo" : "Without Photo") as "With Photo" | "Without Photo",
+      examName: row.exam_name || "Unknown",
+      examYear: String(row.exam_year || ""),
+      difficulty: row.difficulty || "Medium",
       knownStatus: interaction?.is_read ? "known" : "unknown",
       status: interaction?.status,
       next_review_at: interaction?.next_review_at,
@@ -98,15 +94,14 @@ export async function getFilteredSynonyms(
   while (hasMore) {
     let query = supabase.from("synonym").select("*");
 
-    if (filters.theme && filters.theme.length > 0) {
-      query = query.in("theme", filters.theme);
+    if (filters.examName && filters.examName.length > 0) {
+      query = query.in("exam_name", filters.examName);
     }
-    if (filters.hasPhoto && filters.hasPhoto.length === 1) {
-      if (filters.hasPhoto[0] === 'With Photo') {
-          query = query.neq('image_url', '').not('image_url', 'is', null);
-      } else if (filters.hasPhoto[0] === 'Without Photo') {
-          query = query.or('image_url.is.null,image_url.eq.""');
-      }
+    if (filters.examYear && filters.examYear.length > 0) {
+      query = query.in("exam_year", filters.examYear.map(Number));
+    }
+    if (filters.difficulty && filters.difficulty.length > 0) {
+      query = query.in("difficulty", filters.difficulty);
     }
     if (selectedLetter) {
       query = query.ilike("word", `${selectedLetter}%`);
@@ -148,7 +143,9 @@ export async function getFilteredSynonyms(
     recent_trend: row.recent_trend || 0,
     confusable_with: typeof row.confusable_with === 'string' ? JSON.parse(row.confusable_with) : row.confusable_with || [],
     usage_sentences: typeof row.usage_sentences === 'string' ? JSON.parse(row.usage_sentences) : row.usage_sentences || [],
-    // No exam fields
+    exam_name: row.exam_name || "",
+    exam_year: row.exam_year || 0,
+    difficulty: row.difficulty || "Medium"
   })) as unknown as SynonymWord[];
 
   // THE SIEVE (Deck Mode Filter & Known Status Filter)
