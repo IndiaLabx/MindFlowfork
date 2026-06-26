@@ -41,6 +41,7 @@ interface QuizSessionState extends QuizRuntimeState {
   loadSavedQuiz: (savedState: QuizRuntimeState) => void;
   reorderActiveQuestions: (newOrder: Question[]) => void;
   resetStore: () => void;
+  hydrateQuestions: (hydratedQuestions: Question[]) => void;
 }
 
 export const initialState: QuizRuntimeState = {
@@ -84,6 +85,8 @@ const flushToCloud = async (state: QuizRuntimeState, set: any) => {
 
     // Save locally first
     const stateToSave = { ...state };
+    // Strip activeQuestions for virtual pagination safety
+    delete (stateToSave as any).activeQuestions;
     Object.keys(stateToSave).forEach(key => {
       if (typeof (stateToSave as any)[key] === 'function') {
         delete (stateToSave as any)[key];
@@ -130,6 +133,15 @@ const persistentSet = (zustandSet: any, get: any, partial: any, replace?: boolea
         clearTimeout(dbUpdateTimeout);
         dbUpdateTimeout = setTimeout(() => {
             const stateToSave = { ...currentState };
+
+            // Critical fix for Virtual Pagination:
+            // Do not save the 'activeQuestions' array to IndexedDB if it contains unhydrated placeholders.
+            // The bridge_saved_quiz_questions table in Supabase handles the canonical list of IDs.
+            // If we save placeholders back to IDB, we risk permanent data loss.
+            // Since activeQuestions can be very large, we delete it from the progress update payload.
+            // When resuming, QuizSessionGuard recreates it from the bridge table anyway.
+            delete (stateToSave as any).activeQuestions;
+
             Object.keys(stateToSave).forEach(key => {
                 if (typeof (stateToSave as any)[key] === 'function') {
                     delete (stateToSave as any)[key];
@@ -146,6 +158,22 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
   const set: typeof zustandSet = (partial: any, replace?: boolean | undefined) => persistentSet(zustandSet, get, partial, replace);
   return {
   ...initialState,
+
+  hydrateQuestions: (hydratedQuestions) => set((state) => {
+    // Merge new hydrated questions into existing activeQuestions
+    // We update by id so we don't lose ordering or replace already hydrated ones
+    const newActive = [...state.activeQuestions];
+
+    hydratedQuestions.forEach(hq => {
+        const index = newActive.findIndex(q => q.id === hq.id);
+        if (index !== -1) {
+            newActive[index] = hq;
+        }
+    });
+
+    return { activeQuestions: newActive };
+  }),
+
   resetStore: () => set(initialState),
 
   enterHome: async () => { const success = await flushToCloud(get(), set); if(success) { set({ ...initialState, status: 'idle' }); } },

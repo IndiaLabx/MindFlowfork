@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuizSessionStore } from '../stores/useQuizSessionStore';
 import { supabase } from '../../../lib/supabase';
@@ -7,6 +7,10 @@ import { syncService } from '../../../lib/syncService';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { ArrowLeft } from 'lucide-react';
+import { fetchQuestionsByIds } from '../services/questionService';
+
+const WINDOW_SIZE = 50;
+const PREFETCH_THRESHOLD = 10;
 
 export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) => {
     const { quizId } = useParams<{ quizId: string }>();
@@ -15,20 +19,44 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
     const [isHydrating, setIsHydrating] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Ref to keep track of which IDs we've already hydrated to avoid redundant network calls
+    const hydratedIdsRef = useRef<Set<string>>(new Set());
+
+    // 1. Initial Session Hydration (either from IDB/Supabase if resuming, or directly taking from store if new)
     useEffect(() => {
-        const hydrateQuiz = async () => {
+        const hydrateQuizSession = async () => {
             if (!quizId) {
                 setError("Quiz ID is missing.");
                 setIsHydrating(false);
                 return;
             }
 
-            // If the store is already active with this specific quiz, we can skip hydration
+            // A. If the store is already active with this specific quiz (New Quiz Started)
             if (state.quizId === quizId && state.activeQuestions && state.activeQuestions.length > 0) {
+                // Determine which questions need full content based on current index
+                const startIndex = Math.max(0, state.currentQuestionIndex - 10); // buffer for backward nav
+                const endIndex = startIndex + WINDOW_SIZE;
+                const questionsToHydrate = state.activeQuestions.slice(startIndex, endIndex);
+
+                // Check if they need hydration (missing 'question' field)
+                const unhydratedIds = questionsToHydrate.filter(q => !q.question).map(q => q.id);
+
+                if (unhydratedIds.length > 0) {
+                    try {
+                        const fullQuestions = await fetchQuestionsByIds(unhydratedIds);
+                        state.hydrateQuestions(fullQuestions);
+                        fullQuestions.forEach(q => hydratedIdsRef.current.add(q.id));
+                    } catch (e) {
+                         console.error("Initial window hydration failed", e);
+                         setError("Failed to load initial questions.");
+                    }
+                }
+
                 setIsHydrating(false);
                 return;
             }
 
+            // B. Resuming a saved quiz from Dashboard
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session?.user) {
@@ -37,6 +65,7 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                     return;
                 }
 
+                // 1. Fetch lightweight structure (IDs only)
                 const { data: quizData, error } = await supabase
                     .from('saved_quizzes')
                     .select('*, bridge_saved_quiz_questions(question_id, sort_order)')
@@ -50,7 +79,6 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
                     return;
                 }
 
-                // If auth uid doesn't match the owner, bounce them out (share functionality comes in the next component)
                 if (quizData.user_id !== session.user.id) {
                     setError("You do not have permission to view this quiz.");
                     setIsHydrating(false);
@@ -59,16 +87,42 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
 
                 const bridgeData = quizData.bridge_saved_quiz_questions || [];
                 bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
-                const questionIds = bridgeData.map((bq: any) => bq.question_id);
+                const allQuestionIds = bridgeData.map((bq: any) => bq.question_id);
 
-                if (questionIds.length > 0) {
+                if (allQuestionIds.length > 0) {
+                    const parsedState = typeof quizData.state === 'string' ? JSON.parse(quizData.state) : (quizData.state || {});
+                    if (quizData.status) parsedState.status = quizData.status;
+
+                    let finalStateToLoad = parsedState;
+                    try {
+                        const localQuiz = await db.getQuiz(quizId);
+                        if (localQuiz && localQuiz.state) {
+                            const localUpdated = (localQuiz.state as any).last_updated || 0;
+                            const remoteUpdated = parsedState.last_updated || 0;
+                            const isRemoteCompleted = parsedState.status === 'result' || quizData.status === 'result';
+                            const isLocalCompleted = localQuiz.state.status === 'result';
+
+                            if (!isRemoteCompleted && !isLocalCompleted && localUpdated > remoteUpdated) {
+                                finalStateToLoad = localQuiz.state;
+                            }
+                        }
+                    } catch (dbErr) {
+                        console.error("Failed to read IndexedDB", dbErr);
+                    }
+
+                    // 2. Fetch full content ONLY for the current window
+                    const currentIndex = finalStateToLoad.currentQuestionIndex || 0;
+                    const startIndex = Math.max(0, currentIndex - 10);
+                    const endIndex = startIndex + WINDOW_SIZE;
+
+                    const windowIds = allQuestionIds.slice(startIndex, endIndex);
+
                     const { data: qData, error: qError } = await supabase
                         .from('questions')
                         .select('*')
-                        .in('id', questionIds);
+                        .in('id', windowIds);
 
                     if (qError) {
-                         console.error("Failed to fetch study materials:", qError);
                          setError("Failed to fetch quiz questions.");
                          setIsHydrating(false);
                          return;
@@ -76,62 +130,25 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
 
                     const questionsMap = new Map((qData || []).map(q => [String(q.id), q]));
 
-                    const fullQuestions: any[] = [];
-                    bridgeData.forEach((bq: any) => {
-                        const q = questionsMap.get(String(bq.question_id));
-                        if (q) fullQuestions.push(q);
+                    // We must build the full array of questions (metadata only for outside window, full for inside)
+                    const mixedQuestions: any[] = allQuestionIds.map((id: any) => {
+                         const strId = String(id);
+                         if (questionsMap.has(strId)) {
+                             hydratedIdsRef.current.add(strId);
+                             return questionsMap.get(strId);
+                         }
+                         // Placeholder for unhydrated
+                         return { id: strId, question: '', options: [] };
                     });
 
-                    // Ensure we don't load an empty array if the mapping fails entirely
-                    if (fullQuestions.length === 0) {
-                        console.error("Hydration failed: mapped question array is empty. DB IDs might be missing from questions.");
-                        setError("Quiz questions are missing.");
-                        setIsHydrating(false);
-                        return;
-                    }
-
-                    const parsedState = typeof quizData.state === 'string' ? JSON.parse(quizData.state) : (quizData.state || {});
-                    if (quizData.status) {
-                        parsedState.status = quizData.status;
-                    }
-
-                    // Strict Hydration Precedence: Compare with IndexedDB
-                    let finalStateToLoad = parsedState;
-                    try {
-                        const localQuiz = await db.getQuiz(quizId);
-                        if (localQuiz && localQuiz.state) {
-                            const localUpdated = (localQuiz.state as any).last_updated || 0;
-                            const remoteUpdated = parsedState.last_updated || 0;
-
-                            // If remote is 'result', ALWAYS honor it over local to prevent reopening finished quizzes
-                            const isRemoteCompleted = parsedState.status === 'result' || quizData.status === 'result';
-                            const isLocalCompleted = localQuiz.state.status === 'result';
-
-                            if (!isRemoteCompleted && !isLocalCompleted && localUpdated > remoteUpdated) {
-                                console.log("[Hydration] Local IndexedDB is newer. Overwriting remote state.", { localUpdated, remoteUpdated });
-                                finalStateToLoad = localQuiz.state;
-
-                                // Schedule a background repair of Supabase since it's stale
-                                setTimeout(() => {
-                                   syncService.pushSavedQuiz(session.user.id, localQuiz).catch(console.error);
-                                }, 1000);
-                            }
-                        }
-                    } catch (dbErr) {
-                        console.error("Failed to read IndexedDB during hydration comparison", dbErr);
-                        // Fallback to remote state if DB read fails
-                    }
-
-                    // Load into Zustand Store explicitly merging ID
                     state.loadSavedQuiz({
                         ...finalStateToLoad,
-                        activeQuestions: fullQuestions,
+                        activeQuestions: mixedQuestions,
                         quizId: quizId,
                         quizName: quizData.name,
                         isPaused: false
                     });
                 } else {
-                     console.error("Hydration failed: bridge table returned 0 question IDs.");
                      setError("Quiz is empty.");
                      setIsHydrating(false);
                      return;
@@ -145,9 +162,43 @@ export const QuizSessionGuard = ({ children }: { children: React.ReactNode }) =>
             }
         };
 
-        hydrateQuiz();
+        hydrateQuizSession();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [quizId]);
+
+    // 2. Background Prefetching (Sliding Window)
+    useEffect(() => {
+        if (isHydrating || !state.activeQuestions || state.activeQuestions.length === 0) return;
+
+        const currentIndex = state.currentQuestionIndex;
+        const total = state.activeQuestions.length;
+
+        // If we are getting close to the edge of our hydrated window, fetch more
+        const nextBatchStartIndex = currentIndex + PREFETCH_THRESHOLD;
+
+        // Find the next chunk of questions that haven't been hydrated yet
+        const questionsToHydrate = state.activeQuestions
+             .slice(currentIndex, currentIndex + WINDOW_SIZE)
+             .filter(q => !q.question && !hydratedIdsRef.current.has(q.id));
+
+        if (questionsToHydrate.length > 0) {
+            const idsToFetch = questionsToHydrate.map(q => q.id);
+
+            // Optimistically mark as hydrating to prevent duplicate calls
+            idsToFetch.forEach(id => hydratedIdsRef.current.add(id));
+
+            fetchQuestionsByIds(idsToFetch)
+                .then(fullQuestions => {
+                    state.hydrateQuestions(fullQuestions);
+                })
+                .catch(err => {
+                    console.error("Sliding window prefetch failed", err);
+                    // Remove from ref so we can try again later
+                    idsToFetch.forEach(id => hydratedIdsRef.current.delete(id));
+                });
+        }
+
+    }, [state.currentQuestionIndex, state.activeQuestions, isHydrating, state]);
 
     if (error) {
         return (

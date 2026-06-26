@@ -82,10 +82,19 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
       setError(null);
       setProgress({ current: 0, total: 0 });
 
+      // 1. Instantly load from cache
+      const cachedMetadata = await db.getQuizMetadataCache();
+      if (cachedMetadata && cachedMetadata.length > 0) {
+        setMetadata(cachedMetadata);
+        setIsLoadingMetadata(false); // Instantly render UI
+      }
+
+      // 2. Fetch delta in the background (or foreground if no cache)
       const data = await fetchQuestionMetadata((current, total) => {
         setProgress({ current, total });
       });
 
+      // 3. Update state
       setMetadata(data);
 
       if (data.length === 0) {

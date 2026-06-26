@@ -11,6 +11,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ErrorState, QueryStateHandler } from '../../../components/ui/ErrorState';
 
 /**
  * Screen for managing attempted (completed) quizzes.
@@ -34,7 +35,7 @@ interface AttemptedQuizzesListProps {
 export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { data: quizzes = [], isLoading: loading } = useQuery({
+    const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
         queryKey: ['attempted-quizzes'],
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -185,7 +186,14 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
         );
     }
 
-    return (
+        return (
+        <QueryStateHandler
+            isLoading={loading}
+            isError={isError}
+            error={error}
+            onRetry={refetch}
+            loadingComponent={<div className="flex items-center justify-center min-h-[60vh]"><SynapticLoader size="lg" /></div>}
+        >
         <div className="w-full h-full animate-fade-in pb-8">
             {sortedQuizzes.length === 0 ? (
                     <motion.div
@@ -265,5 +273,6 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
                     </motion.div>
                 )}
         </div>
+        </QueryStateHandler>
     );
 };

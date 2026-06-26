@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { db } from '../../../lib/db';
 import { Question, Explanation } from '../types';
 
 /**
@@ -39,16 +40,13 @@ interface QuestionDBRow {
   tags: string[];
   /** JSONB object containing the explanation. */
   explanation: Explanation;
+  /** updated_at timestamp. */
+  updated_at: string;
 }
 
 /**
  * Fetches lightweight metadata for all available questions.
- *
- * This function retrieves only the columns necessary for filtering (Subject, Topic, Difficulty, etc.),
- * skipping the heavy text fields (Question, Options, Explanations). This drastically reduces
- * payload size and initial load time, allowing for a responsive configuration UI.
- *
- * It handles pagination automatically to fetch all records.
+ * Uses Delta Sync to only fetch modified rows.
  *
  * @param {function} [onProgress] - Optional callback to report download progress (fetched vs total).
  * @returns {Promise<Question[]>} A promise resolving to a list of Question objects (with empty content fields).
@@ -58,55 +56,58 @@ export const fetchQuestionMetadata = async (
 ): Promise<Question[]> => {
   let allRows: Partial<QuestionDBRow>[] = [];
   
-  // Get Total Count to enable progress tracking
-  const { count, error: countError } = await supabase
-    .from('questions')
-    .select('*', { count: 'exact', head: true });
+  // 1. Get last sync timestamp
+  const lastSync = await db.getSyncTimestamp('quiz_metadata_sync');
+
+  // Get Total Count to enable progress tracking (for delta sync we just count what we need to fetch)
+  let countQuery = supabase.from('questions').select('*', { count: 'exact', head: true });
+  if (lastSync) {
+      countQuery = countQuery.gt('updated_at', lastSync);
+  }
+  const { count, error: countError } = await countQuery;
 
   if (countError) {
       console.error('Error fetching count:', countError);
   }
   const totalRecords = count || 0;
   
-  let from = 0;
-  const limit = 1000;
-  let hasMore = true;
+  if (totalRecords > 0) {
+      // 2. Fetch only changed records via RPC (or fallback)
+      let from = 0;
+      const limit = 1000;
+      let hasMore = true;
 
-  // Select ONLY columns needed for filtering logic.
-  // Minimizes bandwidth usage.
-  const columnsToSelect = 'id, v1_id, subject, topic, subTopic, examName, examYear, examDateShift, difficulty, questionType, tags';
+      try {
+        while (hasMore) {
+          const { data, error } = await supabase
+            .rpc('get_filtered_quiz_metadata', { p_last_sync_at: lastSync })
+            .range(from, from + limit - 1);
 
-  try {
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from('questions')
-        .select(columnsToSelect)
-        .order('id')
-        .range(from, from + limit - 1);
+          if (error) throw error;
 
-      if (error) throw error;
+          if (data && data.length > 0) {
+            allRows = [...allRows, ...data];
+            if (onProgress) onProgress(allRows.length, totalRecords);
 
-      if (data && data.length > 0) {
-        allRows = [...allRows, ...data];
-        if (onProgress) onProgress(allRows.length, totalRecords);
-        
-        if (data.length < limit) hasMore = false;
-        else from += limit;
-      } else {
-        hasMore = false;
+            if (data.length < limit) hasMore = false;
+            else from += limit;
+          } else {
+            hasMore = false;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch metadata:", error);
+        throw error;
       }
-    }
-  } catch (error) {
-    console.error("Failed to fetch metadata:", error);
-    throw error;
+
+      // Update sync timestamp
+      const newSyncTimestamp = new Date().toISOString();
+      await db.setSyncTimestamp('quiz_metadata_sync', newSyncTimestamp);
   }
 
   // Map the raw DB rows to the internal Question model structure.
   // Note: Content fields like 'question' and 'options' are left empty/default.
-    // Deduplicate by v1_id to ensure no duplicate questions in the UI
-  const uniqueRows = Array.from(new Map(allRows.map(item => [item.v1_id || item.id, item])).values());
-
-  return uniqueRows.map((row) => ({
+  const mappedRows = allRows.map((row) => ({
     id: row.id!,
     v1_id: row.v1_id || '',
     sourceInfo: {
@@ -129,18 +130,22 @@ export const fetchQuestionMetadata = async (
     options: [],
     correct: '',
     explanation: {},
+    updated_at: row.updated_at
   }));
+
+  if (mappedRows.length > 0) {
+      // Save mapped rows to IndexedDB
+      await db.saveQuizMetadataCache(mappedRows);
+  }
+
+  // Return everything from cache to ensure we have the full set
+  const cachedData = await db.getQuizMetadataCache();
+
+  // Deduplicate by v1_id to ensure no duplicate questions in the UI
+  const uniqueRows = Array.from(new Map(cachedData.map(item => [item.v1_id || item.id, item])).values());
+  return uniqueRows;
 };
 
-/**
- * Fetches the full content for a specific list of Question IDs.
- *
- * This is called when the user actually starts a quiz. It retrieves the full text, options,
- * and explanations for the selected subset of questions.
- *
- * @param {string[]} ids - The list of Question IDs (`v1_id`) to fetch.
- * @returns {Promise<Question[]>} A promise resolving to the fully populated Question objects.
- */
 export const fetchQuestionsByIds = async (ids: string[]): Promise<Question[]> => {
   if (ids.length === 0) return [];
 

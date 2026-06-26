@@ -33,7 +33,7 @@ export interface OWSInteraction {
 }
 
 const DB_NAME = 'MindFlowDB';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 const STORE_NAME = 'saved_quizzes';
 const HISTORY_STORE_NAME = 'quiz_history';
 const BOOKMARKS_STORE_NAME = 'global_bookmarks';
@@ -44,6 +44,8 @@ const ACTIVE_SESSION_STORE = 'active_test_session';
 const OWS_STORE_NAME = 'ows_interactions';
 const IDIOM_STORE_NAME = 'idiom_interactions';
 const IDIOM_METADATA_STORE = 'idiom_metadata_cache';
+const QUIZ_METADATA_STORE = 'quiz_metadata_cache';
+const SYNC_METADATA_STORE = 'sync_metadata';
 const OWS_METADATA_STORE = 'ows_metadata_cache';
 const SYNONYM_METADATA_STORE = 'synonym_metadata_cache';
 
@@ -88,6 +90,12 @@ const openDB = (): Promise<IDBDatabase> => {
             }
             if (!db.objectStoreNames.contains(IDIOM_METADATA_STORE)) {
                 db.createObjectStore(IDIOM_METADATA_STORE, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(QUIZ_METADATA_STORE)) {
+                db.createObjectStore(QUIZ_METADATA_STORE, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(SYNC_METADATA_STORE)) {
+                db.createObjectStore(SYNC_METADATA_STORE, { keyPath: 'key' });
             }
             if (!db.objectStoreNames.contains(OWS_METADATA_STORE)) {
                 db.createObjectStore(OWS_METADATA_STORE, { keyPath: 'id' });
@@ -662,6 +670,64 @@ export const db = {
     /**
      * Saves Idiom Metadata to cache.
      */
+
+    /**
+     * Saves Quiz Metadata to cache.
+     */
+    saveQuizMetadataCache: async (metadata: any[]): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(QUIZ_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(QUIZ_METADATA_STORE);
+
+            metadata.forEach(item => {
+                store.put(item);
+            });
+
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
+    /**
+     * Retrieves Quiz Metadata from cache.
+     */
+    getQuizMetadataCache: async (): Promise<any[]> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(QUIZ_METADATA_STORE, 'readonly');
+            const store = transaction.objectStore(QUIZ_METADATA_STORE);
+            const request = store.getAll();
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
+    getSyncTimestamp: async (key: string): Promise<string | null> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(SYNC_METADATA_STORE, 'readonly');
+            const store = transaction.objectStore(SYNC_METADATA_STORE);
+            const request = store.get(key);
+
+            request.onsuccess = () => resolve(request.result ? request.result.timestamp : null);
+            request.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
+    setSyncTimestamp: async (key: string, timestamp: string): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(SYNC_METADATA_STORE, 'readwrite');
+            const store = transaction.objectStore(SYNC_METADATA_STORE);
+            const request = store.put({ key, timestamp });
+
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject((event.target as IDBRequest).error);
+        });
+    },
+
     saveIdiomMetadataCache: async (metadata: any[]): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
