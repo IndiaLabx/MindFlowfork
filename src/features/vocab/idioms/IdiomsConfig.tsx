@@ -54,6 +54,17 @@ export const IdiomsConfig: React.FC<IdiomsConfigProps> = ({ onStart, onBack }) =
     useEffect(() => {
         const initConfig = async () => {
             try {
+                // HOTFIX: Clear corrupted cache from previous bug
+                if (!localStorage.getItem('vocab_cache_cleared_v3')) {
+                    await db.clearIdiomMetadataCache?.().catch(()=>console.log('clear method not found'));
+                    await db.clearOwsMetadataCache?.().catch(()=>console.log('clear method not found'));
+                    await db.clearSynonymMetadataCache?.().catch(()=>console.log('clear method not found'));
+                    localStorage.setItem('vocab_cache_cleared_v3', 'true');
+                    // Force a full re-sync from backend to fix the columns
+                    localStorage.removeItem('idiom_last_sync');
+                    localStorage.removeItem('ows_last_sync');
+                    localStorage.removeItem('synonym_last_sync');
+                }
                 // 1. Instantly load from IndexedDB cache (Stale-While-Revalidate)
                 const cachedMetadata = await db.getIdiomMetadataCache();
                 if (cachedMetadata && cachedMetadata.length > 0) {

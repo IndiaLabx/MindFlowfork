@@ -39,6 +39,10 @@ export async function fetchIdiomMetadata() {
                  allRpcData = deltaData;
             } else {
                  // No new deltas
+                 // Bug Fix: Since we changed the frontend mapping logic (e.g. sourceName),
+                 // the old cache in IDB is corrupt. If there are no new deltas, we load from IDB,
+                 // BUT we must re-run the mapping at the bottom of this function.
+                 // The old code assumed the cache was perfectly mapped.
                  allRpcData = await db.getIdiomMetadataCache();
             }
 
@@ -77,16 +81,16 @@ export async function fetchIdiomMetadata() {
 
             // Handle RPC mapping mismatches: Sometimes RPCs return aliased columns
             // based on the query, so we check both camelCase and snake_case variants.
-            const phrase = row.phrase || row.word || '';
+            const phrase = row.phrase || row.word || row.alphabet || '';
             const sourceName = row.source_pdf || row.sourceName || row.examName || 'Unknown';
             const examYear = row.exam_year || row.examYear || '';
             const difficulty = row.difficulty || 'Medium';
-            const isRead = row.is_read || row.isRead;
-            const imageUrl = row.image_url || row.imageUrl;
+            const isRead = row.is_read || row.isRead || (row.knownStatus === 'known');
+            const imageUrl = row.image_url || row.imageUrl || (row.hasPhoto === 'With Photo' ? 'yes' : '');
 
             return {
                 id: rowId,
-                alphabet: phrase ? phrase.charAt(0).toUpperCase() : '',
+                alphabet: phrase ? phrase.charAt(0).toUpperCase() : (row.alphabet || ''),
                 examName: sourceName,
                 examYear: String(examYear),
                 difficulty: difficulty,
