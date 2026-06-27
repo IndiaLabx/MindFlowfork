@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useAdminEditVocab } from '../../vocab/hooks/useAdminEditVocab';
 
@@ -18,12 +19,13 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
   cardData,
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [initialData, setInitialData] = useState<Record<string, any>>({});
   const { mutate: editVocab, isPending } = useAdminEditVocab();
 
   useEffect(() => {
     if (isOpen && cardData) {
       if (type === 'idiom') {
-        setFormData({
+        const initial = {
           phrase: cardData.content?.phrase || '',
           meaning_english: cardData.content?.meanings?.english || '',
           meaning_hindi: cardData.content?.meanings?.hindi || '',
@@ -33,9 +35,11 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           difficulty: cardData.properties?.difficulty || '',
           source_pdf: cardData.sourceInfo?.pdfName || '',
           exam_year: cardData.sourceInfo?.examYear || '',
-        });
+        };
+        setFormData(initial);
+        setInitialData(initial);
       } else if (type === 'ows') {
-        setFormData({
+        const initial = {
           word: cardData.content?.word || '',
           pos: cardData.content?.pos || '',
           meaning_english: cardData.content?.meaning_en || '',
@@ -46,9 +50,11 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           difficulty: cardData.properties?.difficulty || '',
           source_pdf: cardData.sourceInfo?.pdfName || '',
           exam_year: cardData.sourceInfo?.examYear || '',
-        });
+        };
+        setFormData(initial);
+        setInitialData(initial);
       } else if (type === 'synonym') {
-        setFormData({
+        const initial = {
           word: cardData.word || '',
           pos: cardData.pos || '',
           meaning: cardData.meaning || '',
@@ -57,12 +63,48 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           antonyms: JSON.stringify(cardData.antonyms || [], null, 2), // JSON text
           theme: cardData.theme || '',
           repetition_raw: cardData.repetition_raw || '',
-        });
+        };
+        setFormData(initial);
+        setInitialData(initial);
       }
     }
   }, [isOpen, cardData, type]);
 
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, formData, initialData]);
+
   if (!isOpen) return null;
+
+  const hasUnsavedChanges = () => {
+    return JSON.stringify(formData) !== JSON.stringify(initialData);
+  };
+
+  const handleClose = () => {
+    if (hasUnsavedChanges() && !window.confirm("You have unsaved changes. Are you sure you want to discard them?")) {
+      return;
+    }
+    onClose();
+  };
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -108,10 +150,10 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={handleClose}>
       <div
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800"
+        className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 mb-[env(safe-area-inset-bottom)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -125,7 +167,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
@@ -163,9 +205,9 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 bg-gray-50/50 dark:bg-gray-800/50">
+        <div className="p-4 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 bg-gray-50/50 dark:bg-gray-800/50">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
           >
             Cancel
@@ -180,6 +222,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
