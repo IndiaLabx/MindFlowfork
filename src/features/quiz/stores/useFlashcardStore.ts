@@ -32,7 +32,7 @@ interface FlashcardState {
   // Actions
   startIdioms: (data: Idiom[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
   startOWS: (data: OneWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
-  startSynonyms: (data: SynonymWord[], filters?: InitialFilters) => void;
+  startSynonyms: (data: SynonymWord[], filters?: InitialFilters, mode?: 'basic' | 'review') => void;
 
   // Navigation
   nextCard: () => void;
@@ -169,7 +169,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }
   }),
 
-  startSynonyms: (data, filters) => set({
+  startSynonyms: (data, filters, mode) => set({
+    mode: mode || 'review',
     status: 'active',
     type: 'synonyms',
     synonyms: data,

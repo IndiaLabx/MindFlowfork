@@ -94,6 +94,7 @@ export const DeckSession: React.FC = () => {
             onFinish={handleFinish}
             filters={{} as any}
             onJump={handleJump}
+            onSwipe={recordAnswer}
         />;
     }
 
