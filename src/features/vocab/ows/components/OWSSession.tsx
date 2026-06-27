@@ -183,7 +183,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
              const batch = queue.map((ev: any) => {
                  const payload: any = {
                      user_id: user.id,
-                     word_id: ev.word_id,
+                     ows_id: ev.word_id,
                      updated_at: new Date().toISOString()
                  };
                  if (ev.status !== undefined) payload.status = ev.status;
@@ -195,7 +195,7 @@ export const OWSSession: React.FC<OWSSessionProps> = ({
 
              const { error } = await supabase
                  .from('user_ows_interactions')
-                 .upsert(batch, { onConflict: 'user_id, word_id' });
+                 .upsert(batch, { onConflict: 'user_id, ows_id' });
 
              if (!error) {
                  localStorage.removeItem('ows_swipe_queue'); // Clear on success
