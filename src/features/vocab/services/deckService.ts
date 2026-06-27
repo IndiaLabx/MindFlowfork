@@ -148,7 +148,7 @@ export const deckService = {
 
       if (vocabType === 'ows') {
         return {
-          id: row.word || row.id,
+          id: String(row.id),
           db_id: String(row.id),
           sourceInfo: {
             pdfName: row.source_pdf || "Unknown",

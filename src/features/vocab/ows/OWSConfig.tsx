@@ -64,11 +64,11 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
         const initConfig = async () => {
             try {
                 // HOTFIX: Clear corrupted cache from previous bug
-                if (!localStorage.getItem('vocab_cache_cleared_v3')) {
+                if (!localStorage.getItem('vocab_cache_cleared_v4')) {
                     await db.clearIdiomMetadataCache?.().catch(()=>console.log('clear method not found'));
                     await db.clearOwsMetadataCache?.().catch(()=>console.log('clear method not found'));
                     await db.clearSynonymMetadataCache?.().catch(()=>console.log('clear method not found'));
-                    localStorage.setItem('vocab_cache_cleared_v3', 'true');
+                    localStorage.setItem('vocab_cache_cleared_v4', 'true');
                     // Force a full re-sync from backend to fix the columns
                     localStorage.removeItem('idiom_last_sync');
                     localStorage.removeItem('ows_last_sync');
@@ -259,7 +259,7 @@ export const OWSConfig: React.FC<OWSConfigProps> = ({ onStart, onBack }) => {
                 </button>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <Target className="w-7 h-7 text-teal-500" /> Session Config
+                        <Target className="w-7 h-7 text-teal-500" /> OWS Config
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Filter One Word Substitutions</p>
                 </div>

@@ -57,7 +57,7 @@ export async function fetchOwsMetadata() {
         if (localQueueStr) {
           const localQueue = JSON.parse(localQueueStr);
           localQueue.forEach((item: any) => {
-            const id = String(item.word_id);
+            const id = item.ows_id ? String(item.ows_id) : (item.word_id ? String(item.word_id) : "");
             const current = interactMap.get(id) || {};
             if (item.status !== undefined) current.status = item.status;
             if (item.known_ows !== undefined) current.is_read = item.known_ows;
@@ -71,7 +71,7 @@ export async function fetchOwsMetadata() {
     }
 
     return allRpcData.map((row: any) => {
-      const rowId = row.word || String(row.id);
+      const rowId = String(row.id);
       const localInteraction = interactMap.get(rowId);
 
       const phrase = row.word || row.phrase || row.alphabet || "";
@@ -130,7 +130,7 @@ export async function fetchOwsMetadata() {
     const difficulty = row.difficulty || row.difficulty || "Medium";
     const imageUrl = row.image_url || row.imageUrl;
     return {
-      id: row.word || String(row.id),
+      id: String(row.id),
       alphabet: phrase ? phrase.charAt(0).toUpperCase() : "",
       examName: sourceName,
       examYear: String(examYear),
@@ -208,7 +208,7 @@ export async function getFilteredOws(
   }
 
   let parsedData = allData.map((row) => ({
-    id: row.word || row.id, // Use word as spatial ID
+    id: String(row.id), // Use word as spatial ID
     db_id: String(row.id),
     sourceInfo: {
       pdfName: row.source_pdf || "Unknown",
@@ -247,12 +247,12 @@ export async function getFilteredOws(
   if (userData?.user && (hasDeckFilter || hasKnownFilter)) {
     const { data: interactions } = await supabase
       .from("user_ows_interactions")
-      .select("word_id, status, next_review_at, is_read")
+      .select("word_id, ows_id, status, next_review_at, is_read")
       .eq("user_id", userData.user.id);
 
     const interactMap = new Map();
     if (interactions)
-      interactions.forEach((i) => interactMap.set(String(i.word_id), i));
+      interactions.forEach((i) => interactMap.set(i.ows_id ? String(i.ows_id) : String(i.word_id), i));
 
     try {
       if (typeof window !== 'undefined') {
@@ -260,7 +260,7 @@ export async function getFilteredOws(
         if (localQueueStr) {
           const localQueue = JSON.parse(localQueueStr);
           localQueue.forEach((item: any) => {
-            const id = String(item.word_id);
+            const id = item.ows_id ? String(item.ows_id) : (item.word_id ? String(item.word_id) : "");
             let current = interactMap.get(id) || {};
             if (item.status !== undefined) current.status = item.status;
             if (item.known_ows !== undefined) current.is_read = item.known_ows;
