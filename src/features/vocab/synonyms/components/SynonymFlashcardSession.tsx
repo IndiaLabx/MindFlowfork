@@ -6,6 +6,8 @@ import { Button } from '../../../../components/Button/Button';
 import { SynonymCard } from './SynonymCard';
 import { SynonymNavigationPanel } from './SynonymNavigationPanel';
 import { cn } from '../../../../utils/cn';
+import { useAuth } from '../../../../features/auth/context/AuthContext';
+import { Lock } from 'lucide-react';
 import { useFlashcardStore } from '../../../../features/quiz/stores/useFlashcardStore';
 import { triggerHaptic } from '../../../../lib/haptics';
 
@@ -40,6 +42,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   onSwipe
 }) => {
   const mode = useFlashcardStore(state => state.mode) || 'review';
+  const { user } = useAuth();
 
   const [hasSeenTutorial, setHasSeenTutorial] = useState(true);
 
@@ -209,16 +212,18 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
               }
           } catch (e) { console.error('Error undoing queue', e); }
 
+          // First, move the current card out of the way without animation
+          x.set(-500);
+          controls.set({ x: -500, opacity: 0 });
+
+          // Call onPrev to change the currentIndex
           onPrev();
 
-          x.set(lastAction.status === 'mastered' ? 500 : lastAction.status === 'known' ? -500 : lastAction.status === 'unknown' ? 500 : -500);
-          y.set(0);
-          await controls.start({
-              x: 0,
-              y: 0,
-              opacity: 1,
-              transition: { type: "spring", stiffness: 300, damping: 30 }
-          });
+          // Need a small delay to let React render the previous card
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          // Now animate the card back into view
+          await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
 
           setIsFlipped(false);
       } finally {
@@ -276,15 +281,22 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   };
 
   const handlePan = (e: any, info: PanInfo) => {
-     if (mode === 'basic') {
-         x.set(info.offset.x);
-         if (info.offset.x < -50) setSwipeDirection('known');
-         else if (info.offset.x > 50) setSwipeDirection('unknown');
-         else setSwipeDirection(null);
-     } else {
-         x.set(info.offset.x);
-         y.set(info.offset.y);
-     }
+    const { offset } = info;
+    const absX = Math.abs(offset.x);
+    const absY = Math.abs(offset.y);
+
+    if (triggerHaptic) {
+        if (absX > 40 && absX < 45) triggerHaptic(10);
+        if (absY > 40 && absY < 45) triggerHaptic(10);
+        if (absX > 80 && absX < 85) triggerHaptic(20);
+        if (absY > 80 && absY < 85) triggerHaptic(20);
+    }
+
+    if (absX > absY) {
+       setSwipeDirection(offset.x > 0 ? 'unknown' : 'known');
+    } else {
+       setSwipeDirection(offset.y > 0 ? 'down' : 'up');
+    }
   };
 
   const handlePanEnd = async (e: any, info: PanInfo) => {
@@ -330,26 +342,40 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50 dark:bg-gray-900 overflow-hidden font-sans touch-callout-none select-none">
-      {/* Top Header Navigation */}
+    <div className="fixed inset-0 h-[100dvh] w-full bg-gray-100 dark:bg-gray-800 flex flex-col overflow-hidden touch-callout-none select-none">
+            <SynonymNavigationPanel
+        isOpen={isNavOpen}
+        onClose={() => setIsNavOpen(false)}
+        data={data as any}
+        currentIndex={currentIndex}
+        onJump={(index) => {
+          onJump(index);
+          setIsNavOpen(false);
+          setIsFlipped(false);
+        }}
+      />
+
+      {/* Header */}
       {!isFullScreen && (
-        <div className="flex-none z-20">
-          <div className="flex justify-between items-center px-4 py-3 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <button onClick={onExit} className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300" aria-label="Exit session">
+        <div className="flex-none z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={onExit} className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 transition-colors" aria-label="Exit session">
                 <Home className="w-5 h-5" />
               </button>
-              <h1 className="font-bold text-gray-800 dark:text-gray-100 hidden sm:block tracking-tight">Synonyms</h1>
+              <div>
+                <h1 className="font-bold text-gray-900 dark:text-white dark:text-white text-lg leading-tight">Synonyms</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {filters?.examName?.[0] || 'Mixed Set'} • {data.length} Cards
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
-               <span className="font-mono font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full text-sm">
-                  {currentIndex + 1} <span className="opacity-50">/</span> {data.length}
-               </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button onClick={() => setIsNavOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hidden md:block" aria-label="Open card list">
+              <div className="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-sm hidden sm:block">
+                {currentIndex + 1} / {data.length}
+              </div>
+              <button onClick={() => setIsNavOpen(true)} className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors" aria-label="Open Map">
                 <Menu className="w-5 h-5" />
               </button>
               <button onClick={toggleFullScreen} className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300" aria-label="Toggle fullscreen">
@@ -413,8 +439,29 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
               </div>
             )}
 
+
+        {!user && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md rounded-xl">
+            <div className="bg-white/90 dark:bg-slate-800/90 p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm border border-slate-200 dark:border-slate-700">
+              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-4">
+                <Lock className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Unlock Spatial Swiping</h3>
+              <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">
+                Sign in to use the Tinder-style swipe engine and permanently track your vocabulary mastery across devices.
+              </p>
+              <div className="flex gap-3 w-full">
+                <Button onClick={onExit} variant="outline" fullWidth>Back</Button>
+                <Button onClick={() => window.location.hash = '#/auth'} className="bg-indigo-500 hover:bg-indigo-600 text-white" fullWidth>
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
             <motion.div
-              drag={mode === 'basic' ? "x" : true}
+              drag={mode === 'basic' ? "x" : false}
               dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
               dragElastic={1}
               onPanStart={handlePanStart}
@@ -502,17 +549,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
         </div>
       </div>
 
-      <SynonymNavigationPanel
-        isOpen={isNavOpen}
-        onClose={() => setIsNavOpen(false)}
-        data={data as any}
-        currentIndex={currentIndex}
-        onJump={(index) => {
-          onJump(index);
-          setIsNavOpen(false);
-          setIsFlipped(false);
-        }}
-      />
+
 
       <style>{`
         .perspective-1000 { perspective: 1000px; }
