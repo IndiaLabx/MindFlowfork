@@ -749,6 +749,32 @@ export const db = {
     /**
      * Retrieves Idiom Metadata from cache.
      */
+
+    clearIdiomMetadataCache: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve) => {
+            const tx = dbInstance.transaction(IDIOM_METADATA_STORE, 'readwrite');
+            tx.objectStore(IDIOM_METADATA_STORE).clear();
+            tx.oncomplete = () => resolve();
+        });
+    },
+    clearOwsMetadataCache: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve) => {
+            const tx = dbInstance.transaction(OWS_METADATA_STORE, 'readwrite');
+            tx.objectStore(OWS_METADATA_STORE).clear();
+            tx.oncomplete = () => resolve();
+        });
+    },
+    clearSynonymMetadataCache: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve) => {
+            const tx = dbInstance.transaction(SYNONYM_METADATA_STORE, 'readwrite');
+            tx.objectStore(SYNONYM_METADATA_STORE).clear();
+            tx.oncomplete = () => resolve();
+        });
+    },
+
     getIdiomMetadataCache: async (): Promise<any[]> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {

@@ -56,15 +56,15 @@ export async function fetchSynonymMetadata() {
     const rowId = row.word || String(row.id); // Using word as fallback word_id
     const interaction = userInteractions[rowId];
 
-    const phrase = row.word || row.phrase || "";
+    const phrase = row.word || row.phrase || row.alphabet || "";
     const sourceName = row.exam_name || row.examName || row.source_pdf || row.sourceName || "Unknown";
     const examYear = row.exam_year || row.examYear || "";
     const difficulty = row.difficulty || row.difficulty || "Medium";
-    const isRead = row.is_read || row.isRead;
+    const isRead = row.is_read || row.isRead || (row.knownStatus === 'known');
 
     return {
       id: rowId, // Return word_id for spatial mapping
-      alphabet: phrase ? phrase.charAt(0).toUpperCase() : "",
+      alphabet: phrase ? phrase.charAt(0).toUpperCase() : (row.alphabet || ""),
       examName: sourceName,
       examYear: String(examYear),
       difficulty: difficulty,

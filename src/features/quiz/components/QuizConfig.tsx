@@ -162,28 +162,9 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
   }, [filteredMetadata.length]);
 
   // --- Handlers ---
-  const createQuizWithQuestions = async (questionSubset: Question[], activeFilters: InitialFilters) => {
+    const createQuizWithQuestions = async (questionSubset: Question[], activeFilters: InitialFilters) => {
     try {
       setIsStartingQuiz(true);
-      const ids = questionSubset.map(q => q.id);
-
-
-      const fullQuestions = await fetchQuestionsByIds(ids);
-
-      // Check for removed duplicates
-      if (fullQuestions.length < questionSubset.length) {
-        const returnedIds = new Set(fullQuestions.map(q => q.v1_id || q.id));
-        const missingQuestions = questionSubset.filter(q => !returnedIds.has(q.v1_id || q.id));
-        if (missingQuestions.length > 0) {
-          const missingV1Ids = missingQuestions.map(q => q.v1_id || q.id).join(', ');
-          useNotificationStore.getState().showToast({
-            title: 'Duplicate Questions Removed',
-            message: `${missingQuestions.length} exact duplicate question(s) removed (v1_ids: ${missingV1Ids}).`,
-            variant: 'warning',
-            duration: 5000,
-          });
-        }
-      }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
@@ -194,26 +175,30 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
 
       const userId = session.user.id;
       const quizId = crypto.randomUUID();
+      const finalName = quizName.trim() || `Quiz ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
 
+      // Pass the unhydrated subset of questions (metadata only).
+      // QuizSessionGuard will handle fetching the full content in a sliding window later.
+      // This prevents the initial payload waterfall for massive exams.
       const newQuiz: SavedQuiz = {
         id: quizId,
-        name: quizName || `Quiz ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        name: finalName,
         createdAt: Date.now(),
         filters: activeFilters,
         mode: mode,
-        questions: fullQuestions,
+        questions: questionSubset,
         state: {
           ...initialState,
           status: 'quiz',
           mode: mode,
-          activeQuestions: fullQuestions,
+          activeQuestions: questionSubset,
           filters: activeFilters,
           quizId: quizId,
           quizTimeRemaining: mode === 'mock'
-            ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, fullQuestions.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
+            ? Math.max(APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION, questionSubset.length * APP_CONFIG.TIMERS.MOCK_MODE_DEFAULT_PER_QUESTION)
             : 0,
           remainingTimes: mode === 'learning'
-            ? fullQuestions.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
+            ? questionSubset.reduce((acc, q) => ({ ...acc, [q.id]: APP_CONFIG.TIMERS.LEARNING_MODE_DEFAULT }), {})
             : {}
         }
       };

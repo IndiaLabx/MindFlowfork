@@ -74,15 +74,15 @@ export async function fetchOwsMetadata() {
       const rowId = row.word || String(row.id);
       const localInteraction = interactMap.get(rowId);
 
-      const phrase = row.word || row.phrase || "";
+      const phrase = row.word || row.phrase || row.alphabet || "";
       const sourceName = row.source_pdf || row.sourceName || row.examName || "Unknown";
       const examYear = row.exam_year || row.examYear || "";
       const difficulty = row.difficulty || row.difficulty || "Medium";
-      const isRead = row.is_read || row.isRead;
-      const imageUrl = row.image_url || row.imageUrl;
+      const isRead = row.is_read || row.isRead || (row.knownStatus === 'known');
+      const imageUrl = row.image_url || row.imageUrl || (row.hasPhoto === 'With Photo' ? 'yes' : '');
       return {
         id: rowId,
-        alphabet: phrase ? phrase.charAt(0).toUpperCase() : "",
+        alphabet: phrase ? phrase.charAt(0).toUpperCase() : (row.alphabet || ""),
         examName: sourceName,
         examYear: String(examYear),
         difficulty: difficulty,
