@@ -112,7 +112,7 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
 
       {/* FRONT OF CARD */}
       <div className={cn(
-        "absolute inset-0 w-full h-full backface-hidden rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 text-center",
+        "absolute inset-0 w-full h-full backface-hidden rounded-3xl shadow-xl flex flex-col items-center justify-between p-8 text-center",
         status === 'mastered'
           ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800'
           : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
@@ -138,34 +138,27 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
             </button>
           </div>
         )}
-<div className="absolute top-4 right-4 flex items-center gap-2">
-          {data.importance_score > 10 && <span className="text-2xl" title="High Frequency">🔥</span>}
-          {data.importance_score >= 5 && data.importance_score <= 10 && <span className="text-xl" title="Medium Frequency">⭐</span>}
+
+        <div className="w-full h-8 flex justify-between items-start">
+           {/* Top indicators */}
         </div>
 
-        {status === 'familiar' && (
-          <div className="absolute top-4 left-4 flex items-center gap-1 text-amber-500 font-medium bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md text-sm">
-            🟡 Familiar
-          </div>
-        )}
-        {status === 'mastered' && (
-          <div className="absolute top-4 left-4 flex items-center gap-1 text-green-600 font-medium bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-md text-sm">
-            🟢 Mastered
-          </div>
-        )}
+        <div className="flex-1 flex flex-col items-center justify-center w-full">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 dark:text-white mb-4">
+              {data.word}
+            </h2>
 
-        <h2 className="text-5xl md:text-6xl font-serif font-bold text-gray-900 dark:text-white mb-6">
-          {data.word}
-        </h2>
+            {data.pos && (
+              <span className="text-sm uppercase tracking-widest text-gray-400 dark:text-gray-500 font-medium border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full">
+                {data.pos}
+              </span>
+            )}
+        </div>
 
-        {data.pos && (
-          <span className="text-lg text-gray-500 dark:text-gray-400 italic mb-4">
-            {data.pos}
-          </span>
-        )}
-
-        <div className="absolute bottom-6 font-mono text-gray-300 dark:text-gray-600 font-bold text-sm select-none pointer-events-none">
-           #{serialNumber}
+        <div className="w-full flex justify-between items-center text-xs font-mono text-gray-400 dark:text-gray-500 uppercase tracking-wider pt-4 border-t border-gray-100 dark:border-gray-700 mt-4">
+            <span className="capitalize">{status === 'mastered' ? 'Easy' : (status as any) === 'tricky' ? 'Hard' : (status as any) === 'clueless' ? 'Hard' : 'Medium'}</span>
+            <span>#{serialNumber}</span>
+            <span>{(data as any).examName || 'Mixed Set'}</span>
         </div>
       </div>
 
@@ -173,31 +166,53 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
       <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-3xl shadow-xl p-6 md:p-8 flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700 z-50">
 
         <div className="mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-2xl font-serif font-bold text-gray-900 dark:text-white mb-2">{data.word}</h3>
-          <p className="text-xl text-blue-600 dark:text-blue-400 font-medium mb-3">{data.hindiMeaning}</p>
-          <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">{data.meaning}</p>
+          <div className="flex items-baseline gap-3 mb-2">
+            <h3 className="text-2xl font-serif font-bold text-gray-900 dark:text-white">{data.word}</h3>
+            {data.pos && <span className="text-sm text-gray-400 dark:text-gray-500 italic">{data.pos}</span>}
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-3">{data.meaning}</p>
+          <p className="text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50 dark:bg-indigo-900/20 inline-block px-3 py-1 rounded-md text-sm">{data.hindiMeaning}</p>
         </div>
 
-        <div className="flex-1">
-          <h4 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Top Synonyms</h4>
-          <ul className="space-y-3">
-            {data.synonyms?.map((syn, idx) => (
-              <li key={idx} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-100 dark:border-gray-600">
-                <span className="font-bold text-gray-800 dark:text-gray-200 mr-2">{syn.text}</span>
-                <span className="text-gray-500 dark:text-gray-400 text-sm">({syn.hindiMeaning})</span>
-              </li>
-            ))}
-          </ul>
+        <div className="flex-1 space-y-6">
+          {/* Synonyms */}
+          {data.synonyms && data.synonyms.length > 0 && (
+              <div>
+                  <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Synonyms</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {data.synonyms.map((syn, idx) => (
+                      <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 px-3 py-1.5 rounded-lg text-sm font-medium">
+                        {syn.text}
+                      </span>
+                    ))}
+                  </div>
+              </div>
+          )}
 
+          {/* Antonyms */}
+          {data.antonyms && data.antonyms.length > 0 && (
+              <div>
+                  <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Antonyms</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {data.antonyms.map((ant, idx) => (
+                      <span key={idx} className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-800 px-3 py-1.5 rounded-lg text-sm font-medium">
+                        {ant.text}
+                      </span>
+                    ))}
+                  </div>
+              </div>
+          )}
+
+          {/* Confusable Words */}
           {data.confusable_with && data.confusable_with.length > 0 && (
-            <div className="mt-6 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800/50">
-              <span className="text-orange-800 dark:text-orange-300 text-sm font-medium">
-                ⚠️ Confusable with: <strong>{data.confusable_with.join(', ')}</strong>
-              </span>
+            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800/50">
+              <h4 className="text-xs font-bold text-orange-800 dark:text-orange-400 uppercase tracking-wider mb-2">⚠️ Confusable With</h4>
+              <p className="text-orange-900 dark:text-orange-300 font-medium">
+                {data.confusable_with.join(', ')}
+              </p>
             </div>
           )}
         </div>
-
 
         {/* Flashcard Image */}
         <div className="mt-4 pb-4 relative group/image">

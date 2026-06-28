@@ -18,7 +18,7 @@ import {
 
 interface SynonymsHubProps {
     onBack: () => void;
-    onStart: (data: SynonymWord[], filters: any) => void;
+    onStart: (data: SynonymWord[], filters: any, mode?: 'basic' | 'review') => void;
 }
 
 export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => {
