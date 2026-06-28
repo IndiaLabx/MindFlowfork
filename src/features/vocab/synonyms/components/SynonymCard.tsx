@@ -287,6 +287,14 @@ export const SynonymCard: React.FC<SynonymCardProps> = ({ data: initialData, ser
           )}
         </div>
       </div>
-    </div>
+
+
+      <AdminEditVocabModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        type="synonym"
+        cardData={data}
+      />
+</div>
   );
 };

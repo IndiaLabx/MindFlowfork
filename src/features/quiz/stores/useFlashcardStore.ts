@@ -275,14 +275,22 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           if (card.id === id) {
             return {
               ...card,
-              word: rawData.word || card.word,
-              pos: rawData.pos || card.pos,
-              meaning: rawData.meaning || card.meaning,
-              hindiMeaning: rawData.hindi_meaning || card.hindiMeaning,
-              synonyms: rawData.synonyms || card.synonyms,
-              antonyms: rawData.antonyms || card.antonyms,
-              theme: rawData.theme || card.theme,
-              repetition_raw: rawData.repetition_raw || card.repetition_raw
+              word: rawData.word !== undefined ? rawData.word : card.word,
+              pos: rawData.pos !== undefined ? rawData.pos : card.pos,
+              meaning: rawData.meaning !== undefined ? rawData.meaning : card.meaning,
+              hindiMeaning: rawData.hindi_meaning !== undefined ? rawData.hindi_meaning : card.hindiMeaning,
+              synonyms: rawData.synonyms !== undefined ? rawData.synonyms : card.synonyms,
+              antonyms: rawData.antonyms !== undefined ? rawData.antonyms : card.antonyms,
+              theme: rawData.theme !== undefined ? rawData.theme : card.theme,
+              repetition_raw: rawData.repetition_raw !== undefined ? rawData.repetition_raw : card.repetition_raw,
+              cluster_id: rawData.cluster_id !== undefined ? rawData.cluster_id : card.cluster_id,
+              examName: rawData.exam_name !== undefined ? rawData.exam_name : (card as any).examName,
+              examYear: rawData.exam_year !== undefined ? rawData.exam_year : (card as any).examYear,
+              difficulty: rawData.difficulty !== undefined ? rawData.difficulty : (card as any).difficulty,
+              importance_score: rawData.importance_score !== undefined ? rawData.importance_score : card.importance_score,
+              lifetime_frequency: rawData.lifetime_frequency !== undefined ? rawData.lifetime_frequency : card.lifetime_frequency,
+              recent_trend: rawData.recent_trend !== undefined ? rawData.recent_trend : card.recent_trend,
+              confusable_with: rawData.confusable_with !== undefined ? rawData.confusable_with : card.confusable_with
             };
           }
           return card;

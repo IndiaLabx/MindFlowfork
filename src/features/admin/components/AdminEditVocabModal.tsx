@@ -20,6 +20,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [initialData, setInitialData] = useState<Record<string, any>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { mutate: editVocab, isPending } = useAdminEditVocab();
 
   useEffect(() => {
@@ -59,10 +60,17 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
           pos: cardData.pos || '',
           meaning: cardData.meaning || '',
           hindi_meaning: cardData.hindiMeaning || '',
-          synonyms: JSON.stringify(cardData.synonyms || [], null, 2), // JSON text
-          antonyms: JSON.stringify(cardData.antonyms || [], null, 2), // JSON text
           theme: cardData.theme || '',
-          repetition_raw: cardData.repetition_raw || '',
+          cluster_id: cardData.cluster_id || '',
+          exam_name: cardData.examName || cardData.exam_name || '',
+          exam_year: cardData.examYear || cardData.exam_year || '',
+          difficulty: cardData.difficulty || '',
+          importance_score: cardData.importance_score || '',
+          lifetime_frequency: cardData.lifetime_frequency || '',
+          recent_trend: cardData.recent_trend || '',
+          synonyms: JSON.stringify(cardData.synonyms || [], null, 2),
+          antonyms: JSON.stringify(cardData.antonyms || [], null, 2),
+          confusable_with: JSON.stringify(cardData.confusable_with || [], null, 2)
         };
         setFormData(initial);
         setInitialData(initial);
@@ -109,6 +117,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (validationErrors[name]) setValidationErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleSave = () => {
@@ -127,18 +136,66 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
         }
     }
 
+
+    const errors: Record<string, string> = {};
+
     if (type === 'synonym') {
-      try {
-        updates.synonyms = JSON.parse(updates.synonyms);
-      } catch (e) {
-        // Fallback or handle error
-      }
-      try {
-        updates.antonyms = JSON.parse(updates.antonyms);
-      } catch (e) {
-        // Fallback or handle error
+      const validateJsonArray = (fieldName: string, value: any, requireText: boolean) => {
+        try {
+          const parsed = JSON.parse(value);
+          if (!Array.isArray(parsed)) {
+            errors[fieldName] = 'Expected a JSON array.';
+            return null;
+          }
+          if (requireText) {
+             for (let i = 0; i < parsed.length; i++) {
+                if (typeof parsed[i] !== 'object' || parsed[i] === null) {
+                   errors[fieldName] = `Item ${i + 1} must be an object.`;
+                   return null;
+                }
+                if (typeof parsed[i].text !== 'string') {
+                   errors[fieldName] = `Item ${i + 1} is missing required string field "text".`;
+                   return null;
+                }
+             }
+          } else if (fieldName === 'confusable_with') {
+             for (let i = 0; i < parsed.length; i++) {
+                if (typeof parsed[i] !== 'string' && (typeof parsed[i] !== 'object' || parsed[i] === null || typeof parsed[i].text !== 'string')) {
+                   errors[fieldName] = `Item ${i + 1} must be a string or an object with a "text" string field.`;
+                   return null;
+                }
+             }
+          }
+          return parsed;
+        } catch (e: any) {
+          errors[fieldName] = `Invalid JSON: ${e.message}`;
+          return null;
+        }
+      };
+
+      updates.synonyms = validateJsonArray('synonyms', updates.synonyms, true);
+      updates.antonyms = validateJsonArray('antonyms', updates.antonyms, true);
+      updates.confusable_with = validateJsonArray('confusable_with', updates.confusable_with, false);
+
+      ['exam_year', 'importance_score', 'lifetime_frequency', 'recent_trend'].forEach(key => {
+        if (updates[key] !== undefined && updates[key] !== '') {
+          const parsed = parseInt(updates[key], 10);
+          if (isNaN(parsed)) {
+            errors[key] = 'Must be a valid integer.';
+          } else {
+            updates[key] = parsed;
+          }
+        } else if (updates[key] === '') {
+          updates[key] = null;
+        }
+      });
+
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        return;
       }
     }
+
 
     editVocab(
       { id: cardData.id, type, updates },
@@ -181,13 +238,13 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
                 {key.replace(/_/g, ' ')}
               </label>
-              {(key === 'synonyms' || key === 'antonyms' || key === 'usage_sentences' || key === 'usage' || key === 'mnemonic' || key === 'origin' || key === 'meaning_english' || key === 'meaning_hindi' || key === 'meaning' || key === 'hindi_meaning') ? (
+                            {(key === 'synonyms' || key === 'antonyms' || key === 'confusable_with' || key === 'usage_sentences' || key === 'usage' || key === 'mnemonic' || key === 'origin' || key === 'meaning_english' || key === 'meaning_hindi' || key === 'meaning' || key === 'hindi_meaning') ? (
                 <textarea
                   name={key}
                   value={value as string}
                   onChange={handleChange}
-                  rows={4}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono"
+                  rows={(key === 'synonyms' || key === 'antonyms' || key === 'confusable_with') ? 8 : 4}
+                  className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border ${validationErrors[key] ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-indigo-500'} rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:border-transparent outline-none transition-all font-mono`}
                   dir={key.includes('hindi') ? 'auto' : 'ltr'}
                 />
               ) : (
@@ -196,9 +253,22 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
                   name={key}
                   value={value as string}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border ${validationErrors[key] ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-indigo-500'} rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:border-transparent outline-none transition-all`}
                   dir={key.includes('hindi') ? 'auto' : 'ltr'}
                 />
+              )}
+              {validationErrors[key] && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{validationErrors[key]}</p>
+              )}
+              {(key === 'synonyms' || key === 'antonyms') && (
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                  Expected format: <br/><pre className="inline-block bg-gray-100 dark:bg-gray-800 p-1 rounded mt-1">{`[\n  {\n    "text": "leave",\n    "meaning": "go away from"\n  }\n]`}</pre>
+                </p>
+              )}
+              {key === 'confusable_with' && (
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                  Expected format: <br/><pre className="inline-block bg-gray-100 dark:bg-gray-800 p-1 rounded mt-1">{`[\n  {\n    "text": "abdicate",\n    "reason": "giving up authority"\n  }\n]`}</pre>
+                </p>
               )}
             </div>
           ))}
