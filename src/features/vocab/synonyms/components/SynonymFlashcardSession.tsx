@@ -134,61 +134,68 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
           }
       }
 
-      if (isLast) onFinish();
-      else onNext();
+      setIsFlipped(false);
+      setSwipeDirection(null);
+      if (isLast) {
+          onFinish();
+      } else {
+          onNext();
+      }
 
       x.set(0);
       y.set(0);
-      await controls.start({ x: 0, y: 0, opacity: 1, transition: { duration: 0 } });
 
-      setIsFlipped(false);
-      setSwipeDirection(null);
+      await controls.start({ x: 0, y: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
       setIsAnimating(false);
   };
 
-  const handleAction = async (status: 'mastered' | 'tricky' | 'review' | 'clueless', vel: number) => {
-      if (isAnimating || mode !== 'review') return;
-      setIsAnimating(true);
+  const handleAction = async (status: 'mastered'|'tricky'|'review'|'clueless', vel: number) => {
+     if (isAnimating) return;
+     setIsAnimating(true);
+     setSwipeDirection(status);
 
-      if (triggerHaptic) {
-          triggerHaptic(status === 'mastered' || status === 'tricky' ? 50 : 20);
-      }
+     if (triggerHaptic) triggerHaptic(50); // Haptic
 
-      setHistoryStack(prev => [...prev, { item: currentItem, status, index: currentIndex }]);
-      updateSwipeStats(status, 1);
+     // Record for Undo
+     setHistoryStack(prev => [...prev, { item: currentItem, status, index: currentIndex }]);
+     updateSwipeStats(status, 1);
 
-      let targetX = 0;
-      let targetY = 0;
+     // Animate card away
+     let finalX = 0;
+     let finalY = 0;
+     if (status === 'mastered') finalX = 500;
+     if (status === 'clueless') finalX = 500;
+     if (status === 'review') finalX = 500;
+     if (status === 'tricky') finalX = 500;
 
-      if (status === 'mastered') { targetX = 500; targetY = -200; }
-      else if (status === 'tricky') { targetX = 500; targetY = 200; }
-      else if (status === 'review') { targetX = -500; targetY = 200; }
-      else if (status === 'clueless') { targetX = -500; targetY = -200; }
+     // Bonus Effect: High velocity mastered confetti
+     if (status === 'mastered' && Math.abs(vel) > 800) {
+         if (triggerHaptic) triggerHaptic([100, 50, 100]); // Thump thump
+     }
 
-      await controls.start({
-          x: targetX,
-          y: targetY,
-          opacity: 0,
-          transition: { duration: 0.3, ease: "easeOut" }
-      });
+     await controls.start({ x: finalX, y: finalY, opacity: 0, transition: { duration: 0.3 } });
 
-      if (currentItem) {
-          saveSwipeEvent(currentItem.id || currentItem.word, status, Math.abs(vel));
-          if (onSwipe) {
-              onSwipe(currentItem.id || currentItem.word, status, 1000);
-          }
-      }
+     if (currentItem) {
+         saveSwipeEvent(currentItem.id || currentItem.word, status, Math.abs(vel));
+         if (onSwipe) {
+             onSwipe(currentItem.id || currentItem.word, status, 1000);
+         }
+     }
 
-      if (isLast) onFinish();
-      else onNext();
+     // Reset for next card
+     setIsFlipped(false);
+     x.set(0);
+     y.set(0);
+     setSwipeDirection(null);
 
-      x.set(0);
-      y.set(0);
-      await controls.start({ x: 0, y: 0, opacity: 1, transition: { duration: 0 } });
+     if (isLast) {
+         onFinish();
+     } else {
+         onNext();
+     }
 
-      setIsFlipped(false);
-      setSwipeDirection(null);
-      setIsAnimating(false);
+     await controls.start({ x: 0, y: 0, opacity: 1, transition: { duration: 0.1 } });
+     setIsAnimating(false);
   };
 
   const handleUndo = async () => {
@@ -199,10 +206,12 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
           const lastAction = historyStack[historyStack.length - 1];
           setHistoryStack(prev => prev.slice(0, -1));
 
+          // Update stats to revert the last action
           if (lastAction.status) {
               updateSwipeStats(lastAction.status, -1);
           }
 
+          // Remove from queue if it's there
           try {
               const queueStr = localStorage.getItem('synonyms_swipe_queue');
               if (queueStr) {
@@ -210,7 +219,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
                   queue = queue.filter((q: any) => q.word_id !== (lastAction.item.id || lastAction.item.word));
                   localStorage.setItem('synonyms_swipe_queue', JSON.stringify(queue));
               }
-          } catch (e) { console.error('Error undoing queue', e); }
+          } catch (e) {}
 
           // First, move the current card out of the way without animation
           x.set(-500);
@@ -224,8 +233,6 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
 
           // Now animate the card back into view
           await controls.start({ x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } });
-
-          setIsFlipped(false);
       } finally {
           setIsAnimating(false);
       }
@@ -277,7 +284,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
   };
 
   const handlePanStart = () => {
-     if (triggerHaptic) triggerHaptic(10);
+     setSwipeDirection(null);
   };
 
   const handlePan = (e: any, info: PanInfo) => {
@@ -285,6 +292,7 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
     const absX = Math.abs(offset.x);
     const absY = Math.abs(offset.y);
 
+    // Continuous Drag Haptics based on distance milestones
     if (triggerHaptic) {
         if (absX > 40 && absX < 45) triggerHaptic(10);
         if (absY > 40 && absY < 45) triggerHaptic(10);
@@ -293,51 +301,58 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
     }
 
     if (absX > absY) {
-       setSwipeDirection(offset.x > 0 ? 'unknown' : 'known');
+       setSwipeDirection(offset.x > 0 ? 'right' : 'left');
     } else {
        setSwipeDirection(offset.y > 0 ? 'down' : 'up');
     }
   };
 
   const handlePanEnd = async (e: any, info: PanInfo) => {
-    const thresholdX = 100;
-    const thresholdY = 100;
+    if (isAnimating) return;
+
+    const { offset, velocity } = info;
+    const swipeThreshold = 80;
+    const velocityThreshold = 400;
+
+    const isSwipeX = Math.abs(offset.x) > swipeThreshold || Math.abs(velocity.x) > velocityThreshold;
+    const isSwipeY = Math.abs(offset.y) > swipeThreshold || Math.abs(velocity.y) > velocityThreshold;
 
     if (mode === 'basic') {
-        if (info.offset.x < -thresholdX) {
-            await handleBasicAction(true, info.velocity.x);
-        } else if (info.offset.x > thresholdX) {
-            await handleBasicAction(false, info.velocity.x);
-        } else {
-            x.set(0);
-            setSwipeDirection(null);
-            controls.start({ x: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } });
-        }
-    } else {
-        if (info.offset.x > thresholdX) {
-            if (info.offset.y < -thresholdY) await handleAction('mastered', info.velocity.x);
-            else if (info.offset.y > thresholdY) await handleAction('tricky', info.velocity.x);
-            else {
-                // simple right swipe in review mode defaults to Mastered
-                await handleAction('mastered', info.velocity.x);
+        if (isSwipeX) {
+            if (offset.x < 0) {
+                // Swipe Left = Known
+                await handleBasicAction(true, velocity.x);
+            } else {
+                // Swipe Right = Unknown
+                await handleBasicAction(false, velocity.x);
             }
-        } else if (info.offset.x < -thresholdX) {
-            if (info.offset.y < -thresholdY) await handleAction('clueless', info.velocity.x);
-            else if (info.offset.y > thresholdY) await handleAction('review', info.velocity.x);
-            else {
-                // simple left swipe in review mode defaults to Clueless
-                await handleAction('clueless', info.velocity.x);
-            }
-        } else if (info.offset.y > thresholdY) {
-            await handleAction('review', info.velocity.y); // Or map strictly based on preference, here sticking to diagonal/buttons mostly
-        } else if (info.offset.y < -thresholdY) {
-            await handleAction('mastered', info.velocity.y);
         } else {
             x.set(0);
             y.set(0);
             setSwipeDirection(null);
-            controls.start({ x: 0, y: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } });
         }
+        return;
+    }
+
+    if (isSwipeX || isSwipeY) {
+      if (Math.abs(offset.x) > Math.abs(offset.y)) {
+         if (offset.x > 0) {
+            await handleAction('tricky', velocity.x);
+         } else {
+            await handleAction('review', velocity.x);
+         }
+      } else {
+         if (offset.y > 0) {
+            await handleAction('clueless', velocity.y);
+         } else {
+             await handleAction('mastered', velocity.y);
+         }
+      }
+    } else {
+      // Snap back if not swiped far enough
+      x.set(0);
+      y.set(0);
+      setSwipeDirection(null);
     }
   };
 
@@ -471,11 +486,12 @@ export const SynonymFlashcardSession: React.FC<SynonymFlashcardSessionProps> = (
               style={{ x, y, rotate }}
               onTap={(e, info) => {
                  if (isAnimating) return;
+                 // Strict tap vs drag distance check
                  if (Math.abs(info.point.x - info.point.x) < 5) {
                      setIsFlipped(!isFlipped);
                  }
               }}
-              className="absolute w-full h-full will-change-transform z-10 cursor-grab active:cursor-grabbing"
+              className="absolute w-full h-full will-change-transform z-10"
             >
               <SynonymCard data={currentItem} serialNumber={currentIndex + 1} isFlipped={isFlipped} />
             </motion.div>
