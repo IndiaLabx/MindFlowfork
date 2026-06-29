@@ -7,6 +7,9 @@ import { Clock, Hash, Calendar, FileText, Volume2, Square, Loader2, Copy, Check,
 import html2canvas from 'html2canvas';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import { useNotification } from '../../../hooks/useNotification';
+import { useAuth } from '../../../features/auth/context/AuthContext';
+import { AdminEditQuestionModal } from '../../../features/admin/components/AdminEditQuestionModal';
+import { Edit } from 'lucide-react';
 import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 
 // --- Client-Side Sanitizer ---
@@ -82,6 +85,9 @@ export function QuizQuestionDisplay({
     const { speak, stop, isPlaying, isLoading, error } = useTextToSpeech();
     const { showToast } = useNotification();
     const [isCopied, setIsCopied] = React.useState(false);
+    const { user } = useAuth();
+    const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+    const isAdmin = user?.email === 'admin@mindflow.com';
 
     const stripHtmlRegex = React.useCallback((html?: string) => {
         if (!html) return "";
@@ -214,11 +220,24 @@ export function QuizQuestionDisplay({
                         </span>
                     )}
                     {/* Exam Shift Detail - Now visible on all screens and beside exam name */}
+
                     {(question.examDateShift || question.sourceInfo?.examDateShift) && (
                         <span className="flex items-center gap-1 text-gray-400 dark:text-slate-500 border-l border-gray-200 dark:border-gray-700 pl-2 ml-1">
                             <Calendar className="w-3 h-3" />
                             {question.examDateShift || question.sourceInfo?.examDateShift}
                         </span>
+                    )}
+                    {isAdmin && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsEditModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 text-[0.65rem] font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 px-2.5 py-1 rounded ml-auto shadow-sm active:scale-95 transition-all"
+                            title="Edit Question"
+                        >
+                            <Edit className="w-3 h-3" /> Edit
+                        </button>
                     )}
                 </div>
             </div>
@@ -327,6 +346,13 @@ export function QuizQuestionDisplay({
                     />
                 ))}
             </div>
+          {isAdmin && (
+                <AdminEditQuestionModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    question={question}
+                />
+            )}
         </div>
     );
 }
