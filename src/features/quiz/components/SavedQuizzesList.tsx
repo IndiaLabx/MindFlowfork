@@ -57,26 +57,10 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             if (!data || data.length === 0) return [];
 
             const activeQuizzes = data.filter(rq => rq.status !== 'result');
-            const allQuestionIds = new Set<string>();
-            activeQuizzes.forEach(rq => {
-                const bridgeData = rq.bridge_saved_quiz_questions || [];
-                bridgeData.forEach((bq: any) => allQuestionIds.add(bq.question_id));
-            });
-
-            const idArray = Array.from(allQuestionIds);
-            if (idArray.length === 0) return [];
-
-            const { data: qData } = await supabase.from('questions').select('*').in('id', idArray);
-            const questionsMap = new Map((qData || []).map(q => [String(q.id), q]));
-
             return activeQuizzes.map(rq => {
-                let questions: any[] = [];
                 const bridgeData = rq.bridge_saved_quiz_questions || [];
-                bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
-                bridgeData.forEach((bq: any) => {
-                    const q = questionsMap.get(String(bq.question_id));
-                    if (q) questions.push(q);
-                });
+                const questionsCount = bridgeData.length;
+                let questions = new Array(questionsCount).fill({});
 
                 let parsedState: any = {};
                 try {
