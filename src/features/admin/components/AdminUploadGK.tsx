@@ -269,7 +269,6 @@ const SingleUpload: React.FC = () => {
         setIsSubmitting(true);
 
         const payload = {
-            id: formData.id,
             v1_id: formData.v1_id,
             subject: formData.subject,
             topic: formData.topic,
@@ -808,6 +807,8 @@ const EditQuestion: React.FC = () => {
         setIsSubmitting(true);
 
         const payload = {
+            id: formData.id,
+            v1_id: formData.v1_id,
             subject: formData.subject,
             topic: formData.topic,
             subTopic: formData.subTopic,
