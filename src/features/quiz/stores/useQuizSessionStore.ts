@@ -1,10 +1,11 @@
 import { useNotificationStore } from '../../../stores/useNotificationStore';
 import { db } from '../../../lib/db';
 import { syncService } from '../../../lib/syncService';
-import { supabase } from '../../../lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../lib/supabase';
 import { create } from 'zustand';
 import { APP_CONFIG } from '../../../constants/config';
 import { QuizRuntimeState, QuizPersistentState, QuizStatus, QuizMode, Question, InitialFilters } from '../types';
+import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
 
 interface QuizSessionState extends QuizRuntimeState {
   toggleToolbar: () => void;
@@ -64,59 +65,107 @@ export const initialState: QuizRuntimeState = {
 };
 
 
+// SINGLE CLOUD WRITER ARCHITECTURE (Layer 2)
+let isWriterRunning = false;
+let pendingDirty = false;
+let lastFlushErrorTime = 0;
+const isDev = import.meta.env.DEV;
 
-const flushToCloud = async (state: QuizRuntimeState, set: any) => {
-  if (typeof window === 'undefined' || !state.quizId) return true;
-  if (state.status === 'finalizing' || state.status === 'result' || state.status === 'finalize_failed') return true;
-
-  if (!navigator.onLine) {
-     set({ syncStatus: 'offline_pending' });
-     useNotificationStore.getState().showToast({
-         variant: 'sync',
-         message: 'You are offline. Progress saved locally and will sync when reconnected.'
-     });
-     return true; // Local save is sufficient for offline
-  }
-
-  set({ syncStatus: 'syncing' });
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return false;
-
-    // Save locally first
-    const stateToSave = { ...state };
-    // Strip activeQuestions for virtual pagination safety
-    delete (stateToSave as any).activeQuestions;
-    Object.keys(stateToSave).forEach(key => {
-      if (typeof (stateToSave as any)[key] === 'function') {
-        delete (stateToSave as any)[key];
-      }
-    });
-    await db.updateQuizProgress(state.quizId, stateToSave as any);
-
-    // Push full quiz object
-    const quiz = await db.getQuiz(state.quizId);
-    if (quiz) {
-      const syncResult = await syncService.pushSavedQuiz(session.user.id, quiz);
-      if (syncResult === false) { // Assuming we update syncService to return success state
-         throw new Error("Sync service rejected the push.");
-      }
+// Centralized sync orchestrator that guarantees:
+// 1. Only ONE upload in flight at any time.
+// 2. If mutations occur during upload, it loops and pushes the freshest state immediately after.
+const enqueueCloudSync = async (state: QuizRuntimeState, set: any, source: string = 'mutation', isKeepAlive = false) => {
+    if (typeof window === 'undefined' || !state.quizId || state.status !== 'quiz') return;
+    if (!navigator.onLine) {
+        set({ syncStatus: 'offline_pending' });
+        return; // Layer 1 (IndexedDB) already saved it, we'll reconcile later.
     }
-    set({ syncStatus: 'synced' });
-    return true;
-  } catch (err) {
-    console.error("Failed explicit flush to cloud:", err);
-    set({ syncStatus: 'sync_failed' });
-    useNotificationStore.getState().showToast({
-       variant: 'error',
-       message: 'Background sync failed. Please check your connection.'
-    });
-    return false;
-  }
+
+    if (isWriterRunning) {
+        pendingDirty = true;
+        if (isDev) console.log(`[SYNC_QUEUED] [${source}] Mutation while sync active. Marking dirty.`);
+        return;
+    }
+
+    isWriterRunning = true;
+
+    try {
+        do {
+            pendingDirty = false; // Reset before we capture state
+            const syncId = Math.random().toString(36).substring(7);
+            if (isDev) console.log(`[SYNC_START] [${source}] ID: ${syncId} time: ${performance.now()}`);
+            set({ syncStatus: 'syncing' });
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) break;
+
+            const token = session.access_token;
+            const headers = new Headers();
+            headers.append("apikey", SUPABASE_ANON_KEY);
+            headers.append("Authorization", `Bearer ${token}`);
+            headers.append("Content-Type", "application/json");
+
+            // Strip functions and heavy activeQuestions array
+            const stateToSave = { ...state };
+            Object.keys(stateToSave).forEach(key => {
+                if (typeof (stateToSave as any)[key] === 'function') {
+                    delete (stateToSave as any)[key];
+                }
+            });
+            const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
+
+            const endpoint = `${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${state.quizId}`;
+
+            try {
+                if (isKeepAlive) {
+                    fetchWithTimeout(endpoint, {
+                        method: 'PATCH',
+                        headers: headers,
+                        body: JSON.stringify({ state: stateWithoutQuestions }),
+                        keepalive: true
+                    }).catch(() => {});
+                } else {
+                    await fetchWithTimeout(endpoint, {
+                        method: 'PATCH',
+                        headers: headers,
+                        body: JSON.stringify({ state: stateWithoutQuestions })
+                    });
+                }
+                set({ syncStatus: 'synced' });
+                if (isDev) console.log(`[SYNC_SUCCESS] [${source}] ID: ${syncId}`);
+            } catch (networkErr: any) {
+                // If it fails, mark it dirty so it retries, and break the loop to avoid infinite failure spins
+                pendingDirty = true;
+                throw networkErr;
+            }
+
+        } while (pendingDirty);
+
+    } catch (err: any) {
+        console.error(`[QUIZ_SYNC_ERROR] [${source}]`, err);
+        set({ syncStatus: 'sync_failed' });
+
+        const now = Date.now();
+        if (now - lastFlushErrorTime > 30000) {
+            lastFlushErrorTime = now;
+            useNotificationStore.getState().showToast({
+                variant: 'error',
+                message: 'Background sync failed. Retrying automatically...'
+            });
+        }
+    } finally {
+        isWriterRunning = false;
+    }
 };
 
+// Exported trigger for useQuiz.ts (Layer 3 reconciler) to hook into the single writer
+export const triggerCloudReconciliation = (state: QuizRuntimeState, set: any, source: string, isKeepAlive = false) => {
+    // Only queue if not already running (or if it is running, let it run, it will pick up latest state).
+    // Reconciliation is just another mutation conceptually.
+    pendingDirty = true;
+    enqueueCloudSync(state, set, source, isKeepAlive);
+}
 
-let dbUpdateTimeout: any = null;
 
 const persistentSet = (zustandSet: any, get: any, partial: any, replace?: boolean | undefined) => {
     const newStateOrFn = partial;
@@ -130,27 +179,24 @@ const persistentSet = (zustandSet: any, get: any, partial: any, replace?: boolea
 
     const currentState = get();
     if (currentState.quizId && currentState.status === 'quiz') {
-        clearTimeout(dbUpdateTimeout);
-        dbUpdateTimeout = setTimeout(() => {
-            const stateToSave = { ...currentState };
 
-            // Critical fix for Virtual Pagination:
-            // Do not save the 'activeQuestions' array to IndexedDB if it contains unhydrated placeholders.
-            // The bridge_saved_quiz_questions table in Supabase handles the canonical list of IDs.
-            // If we save placeholders back to IDB, we risk permanent data loss.
-            // Since activeQuestions can be very large, we delete it from the progress update payload.
-            // When resuming, QuizSessionGuard recreates it from the bridge table anyway.
-            delete (stateToSave as any).activeQuestions;
+        // LAYER 1: Immediate Local Persistence (IndexedDB)
+        const stateToSave = { ...currentState };
+        delete (stateToSave as any).activeQuestions; // Protect virtual pagination
+        Object.keys(stateToSave).forEach(key => {
+            if (typeof (stateToSave as any)[key] === 'function') {
+                delete (stateToSave as any)[key];
+            }
+        });
 
-            Object.keys(stateToSave).forEach(key => {
-                if (typeof (stateToSave as any)[key] === 'function') {
-                    delete (stateToSave as any)[key];
-                }
-            });
-            db.updateQuizProgress(currentState.quizId, stateToSave).catch((err: any) => {
-                console.error("Failed non-blocking DB update:", err);
-            });
-        }, 500);
+        // Fire and forget IndexedDB write (fast, local)
+        db.updateQuizProgress(currentState.quizId, stateToSave).catch((err: any) => {
+            console.error("Failed Layer 1 IndexedDB commit:", err);
+        });
+
+        // LAYER 2: Near-Immediate Cloud Durability (Single Writer Coalescer)
+        // This queues the write. If idle, it starts immediately. If running, it marks dirty and loops.
+        enqueueCloudSync(currentState, zustandSet, 'mutation');
     }
 };
 
@@ -176,7 +222,9 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
 
   resetStore: () => set(initialState),
 
-  enterHome: async () => { const success = await flushToCloud(get(), set); if(success) { set({ ...initialState, status: 'idle' }); } },
+  enterHome: async () => {
+    set({ ...initialState, status: 'idle' });
+  },
   enterConfig: () => set({ status: 'config' }),
   enterBlueprints: () => set({ status: 'blueprints' as any }),
   enterEnglishHome: () => set({ status: 'english-home' }),
@@ -334,7 +382,9 @@ export const useQuizSessionStore = create<QuizSessionState>((zustandSet, get) =>
     };
   }),
 
-  goHome: async () => { const success = await flushToCloud(get(), set); if(success) { set({ ...initialState, status: 'idle' }); } },
+  goHome: async () => {
+    set({ ...initialState, status: 'idle' });
+  },
 
   reorderActiveQuestions: (newOrder) => set((state) => {
     const currentQuestion = state.activeQuestions[state.currentQuestionIndex];

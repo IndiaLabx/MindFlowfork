@@ -3,13 +3,11 @@ import { useSyncStore } from '../stores/useSyncStore';
 import { useAnalyticsStore } from '../stores/useAnalyticsStore';
 import { logEvent } from '../services/analyticsService';
 import { APP_CONFIG } from '../../../constants/config';
-import { useQuizSessionStore } from '../stores/useQuizSessionStore';
+import { useQuizSessionStore, triggerCloudReconciliation } from '../stores/useQuizSessionStore';
 import { Question, InitialFilters, QuizMode, Idiom, OneWord, SynonymWord, QuizRuntimeState, QuizHistoryRecord, SubjectStats } from '../types';
 import { db } from '../../../lib/db';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../lib/supabase';
-import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
-import { syncService } from '../../../lib/syncService';
+import { supabase } from '../../../lib/supabase';
 
 /**
  * Custom hook to manage the global quiz application state.
@@ -27,110 +25,39 @@ export const useQuiz = () => {
   const state = useQuizSessionStore();
 
   const flushSync = useCallback(() => {
-    if (!state.quizId) return;
-
-    const stateToSave = { ...state };
-    Object.keys(stateToSave).forEach(key => {
-      if (typeof (stateToSave as any)[key] === 'function') {
-        delete (stateToSave as any)[key];
-      }
-    });
-
-    db.updateQuizProgress(state.quizId, stateToSave as any).catch(console.error);
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && state.quizId) {
-        db.getQuiz(state.quizId).then(quiz => {
-          if (quiz) syncService.pushSavedQuiz(session.user.id, quiz).catch(console.error);
-        });
-      }
-    });
-  }, [state]);
+    // flushSync is now fully replaced by the single-writer architecture in useQuizSessionStore.
+    // It's kept here as a no-op to prevent breaking existing components that call it,
+    // though the store's persistentSet now handles immediate DB + queued Cloud pushes for every mutation.
+  }, []);
 
 
-  // Persistence Effect: Stable Ref-Driven Sync Loop
+  // Persistence Effect: Stable Ref-Driven Sync Loop (Layer 3)
   const latestStateRef = useRef(state);
-  const dirtyRef = useRef(false);
 
   // Update refs on every render (no effect dependencies needed for this)
   useEffect(() => {
-      // Check if state actually mutated meaningfully before marking dirty
-      if (latestStateRef.current.last_updated !== state.last_updated && state.status === 'quiz') {
-          dirtyRef.current = true;
-      }
       latestStateRef.current = state;
   });
 
   useEffect(() => {
       let intervalId: NodeJS.Timeout;
 
-      const syncToSupabase = async (isKeepAlive = false) => {
-          if (!dirtyRef.current && !isKeepAlive) return; // Nothing to sync
-          if (!navigator.onLine) return;
-
+      const reconcileWithCloud = (source: string, isKeepAlive = false) => {
           const currentState = latestStateRef.current;
-          if (!currentState.quizId || currentState.status !== 'quiz') return;
-
-          // Clear dirty flag optimistically
-          dirtyRef.current = false;
-
-          const stateToSave = { ...currentState };
-          Object.keys(stateToSave).forEach(key => {
-              if (typeof (stateToSave as any)[key] === 'function') {
-                  delete (stateToSave as any)[key];
-              }
-          });
-          const { activeQuestions, ...stateWithoutQuestions } = stateToSave;
-
-          try {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (!session?.user) return;
-
-              const token = session.access_token;
-              const userId = session.user.id;
-
-              if (!token || !userId) return;
-
-              const headers = new Headers();
-              headers.append("apikey", SUPABASE_ANON_KEY);
-              headers.append("Authorization", `Bearer ${token}`);
-              headers.append("Content-Type", "application/json");
-
-              if (isKeepAlive) {
-                  fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${currentState.quizId}`, {
-                      method: 'PATCH',
-                      headers: headers,
-                      body: JSON.stringify({ state: stateWithoutQuestions }),
-                      keepalive: true
-                  }).catch(() => {});
-              } else {
-                  await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/saved_quizzes?id=eq.${currentState.quizId}`, {
-                      method: 'PATCH',
-                      headers: headers,
-                      body: JSON.stringify({ state: stateWithoutQuestions })
-                  });
-              }
-          } catch (e) {
-              console.error("Supabase Sync Loop Error", e);
-              dirtyRef.current = true; // Mark dirty again so it retries next loop
-          }
+          // Hook into the single writer queue directly
+          triggerCloudReconciliation(currentState, useQuizSessionStore.setState, source, isKeepAlive);
       };
 
-      // 1. Stable Heartbeat (Network Throttle)
+      // 1. Stable Heartbeat (Layer 3 Periodic Sweep)
+      // Checks for desyncs every 15 seconds (reduced from 3 seconds since Layer 2 handles immediate writes)
       intervalId = setInterval(() => {
-          syncToSupabase(false);
-      }, 3000); // 3 seconds interval
+          reconcileWithCloud('periodic_reconciliation', false);
+      }, 15000);
 
       // 2. Ironclad Safety Nets using refs (immune to stale closures)
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-         syncToSupabase(true);
-      };
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => { reconcileWithCloud(e ? e.type : 'visibilitychange', true); };
 
-      const handleVisibilityChange = () => {
-          if (document.visibilityState === 'hidden') {
-              syncToSupabase(true);
-          }
-      };
+      const handleVisibilityChange = () => { if (document.visibilityState === 'hidden') { reconcileWithCloud('visibilitychange', true); } };
 
       window.addEventListener('beforeunload', handleBeforeUnload);
       document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -283,42 +210,6 @@ export const useQuiz = () => {
     ? ((state.currentQuestionIndex + 1) / totalQuestions) * 100
     : 0;
 
-  // Wrap navigation handlers to include a flushSync call
-  const goHome = useCallback(() => {
-    flushSync();
-    state.goHome();
-  }, [flushSync, state.goHome]);
-
-  const finishQuiz = useCallback(() => {
-    flushSync();
-    state.finishQuiz();
-  }, [flushSync, state.finishQuiz]);
-
-  const enterHome = useCallback(() => {
-    flushSync();
-    state.enterHome();
-  }, [flushSync, state.enterHome]);
-
-  const goToIntro = useCallback(() => {
-    flushSync();
-    state.goToIntro();
-  }, [flushSync, state.goToIntro]);
-
-  const enterConfig = useCallback(() => {
-    flushSync();
-    state.enterConfig();
-  }, [flushSync, state.enterConfig]);
-
-  const enterProfile = useCallback(() => {
-    flushSync();
-    state.enterProfile();
-  }, [flushSync, state.enterProfile]);
-
-  const enterLogin = useCallback(() => {
-    flushSync();
-    state.enterLogin();
-  }, [flushSync, state.enterLogin]);
-
   return {
     isReviewMode,
     setIsReviewMode,
@@ -326,15 +217,15 @@ export const useQuiz = () => {
     currentQuestion,
     totalQuestions,
     progress,
-    enterHome,
-    enterConfig,
+    enterHome: state.enterHome,
+    enterConfig: state.enterConfig,
     enterEnglishHome: state.enterEnglishHome,
     enterIdiomsConfig: state.enterIdiomsConfig,
     enterOWSConfig: state.enterOWSConfig,
     enterSynonymsConfig: state.enterSynonymsConfig,
-    enterProfile,
-    enterLogin,
-    goToIntro,
+    enterProfile: state.enterProfile,
+    enterLogin: state.enterLogin,
+    goToIntro: state.goToIntro,
     startQuiz,
     submitSessionResults,
     answerQuestion: state.answerQuestion,
@@ -349,9 +240,9 @@ export const useQuiz = () => {
     useFiftyFifty: state.useFiftyFifty,
     pauseQuiz: state.pauseQuiz,
     resumeQuiz: state.resumeQuiz,
-    finishQuiz,
+    finishQuiz: state.finishQuiz,
     restartQuiz: state.restartQuiz,
-    goHome,
+    goHome: state.goHome,
     loadSavedQuiz: state.loadSavedQuiz,
     reorderActiveQuestions: state.reorderActiveQuestions
   };
