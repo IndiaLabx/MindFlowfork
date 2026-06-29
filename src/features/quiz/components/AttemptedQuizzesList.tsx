@@ -56,26 +56,10 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
             if (!data || data.length === 0) return [];
 
             const completedQuizzes = data.filter(rq => rq.status === 'result');
-            const allQuestionIds = new Set<string>();
-            completedQuizzes.forEach(rq => {
-                const bridgeData = rq.bridge_saved_quiz_questions || [];
-                bridgeData.forEach((bq: any) => allQuestionIds.add(bq.question_id));
-            });
-
-            const idArray = Array.from(allQuestionIds);
-            if (idArray.length === 0) return [];
-
-            const { data: qData } = await supabase.from('questions').select('*').in('id', idArray);
-            const questionsMap = new Map((qData || []).map(q => [String(q.id), q]));
-
             return completedQuizzes.map(rq => {
-                let questions: any[] = [];
                 const bridgeData = rq.bridge_saved_quiz_questions || [];
-                bridgeData.sort((a: any, b: any) => a.sort_order - b.sort_order);
-                bridgeData.forEach((bq: any) => {
-                    const q = questionsMap.get(String(bq.question_id));
-                    if (q) questions.push(q);
-                });
+                const questionsCount = bridgeData.length;
+                let questions = new Array(questionsCount).fill({});
 
                 const parsedState = typeof rq.state === 'string' ? JSON.parse(rq.state) : (rq.state || {});
                 const parsedFilters = typeof rq.filters === 'string' ? JSON.parse(rq.filters) : (rq.filters || {});
