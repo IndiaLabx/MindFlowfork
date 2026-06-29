@@ -53,7 +53,20 @@ export const fetchQuestionByV1Id = async (v1_id: string) => {
 };
 
 export const updateQuestion = async (payload: any) => {
-    const { error } = await supabase.from('questions').update(payload).eq('v1_id', payload.v1_id);
+    const { id, ...updateData } = payload;
+    if (!id) throw new Error("Question ID is missing.");
+
+    const { data, error } = await supabase
+        .from('questions')
+        .update(updateData)
+        .eq('id', id)
+        .select();
+
     if (error) throw error;
+
+    if (!data || data.length === 0) {
+        throw new Error("No question found to update or permission denied (silent failure).");
+    }
+
     return true;
 };

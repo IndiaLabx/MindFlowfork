@@ -14,6 +14,7 @@ import { AdminBulkUpdate } from './AdminBulkUpdate';
 type UploadMode = 'single' | 'bulk' | 'edit' | 'bulk-update';
 
 interface QuestionForm {
+    id?: string;
     v1_id: string;
     subject: string;
     topic: string;
@@ -268,6 +269,7 @@ const SingleUpload: React.FC = () => {
         setIsSubmitting(true);
 
         const payload = {
+            id: formData.id,
             v1_id: formData.v1_id,
             subject: formData.subject,
             topic: formData.topic,
@@ -733,6 +735,7 @@ const EditQuestion: React.FC = () => {
 
             if (q) {
                 setFormData({
+                    id: q.id,
                     v1_id: q.v1_id,
                     subject: q.subject || '',
                     topic: q.topic || '',
@@ -830,7 +833,7 @@ const EditQuestion: React.FC = () => {
             setSearchId('');
         } catch (err: any) {
             console.error(err);
-            showToast({ title: 'Update Failed', message: err.message, variant: 'error' });
+            showToast({ title: 'Update Failed', message: err.message || 'Failed to update question', variant: 'error' });
         } finally {
             setIsSubmitting(false);
         }
@@ -876,8 +879,8 @@ const EditQuestion: React.FC = () => {
                     {/* ID & Classification Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">v1_id (Locked)</label>
-                            <input disabled name="v1_id" value={formData.v1_id} className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-500 cursor-not-allowed rounded-xl px-4 py-2 outline-none text-base" />
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">v1_id</label>
+                            <input name="v1_id" value={formData.v1_id} onChange={handleChange} className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none text-base" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Subject</label>
