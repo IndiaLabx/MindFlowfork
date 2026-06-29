@@ -435,6 +435,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               }}
               counts={filterCounts.subject || {}}
               hideZeroCount
+              maxRows={3}
             />
             <ScrollableCapsules
               label="Topic"
@@ -451,6 +452,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               hideZeroCount
               isLoading={filters.subject.length > 0 && availableTopics.length === 0 && isLoadingMetadata}
               emptyMessage={filters.subject.length === 0 ? "Select Subject First" : "No topics available"}
+              maxRows={3}
             />
             <ScrollableCapsules
               label="Sub-Topic"
@@ -467,6 +469,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({ onStart, onBack }) => {
               hideZeroCount
               isLoading={filters.topic.length > 0 && availableSubTopics.length === 0 && isLoadingMetadata}
               emptyMessage={filters.topic.length === 0 ? "Select Topic First" : "No sub-topics available"}
+              maxRows={3}
             />
           </FilterGroup>
 

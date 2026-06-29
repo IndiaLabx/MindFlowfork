@@ -13,6 +13,7 @@ export interface ScrollableCapsulesProps {
   emptyMessage?: string;
   isLoading?: boolean;
   hideZeroCount?: boolean;
+  maxRows?: number;
 }
 
 export const ScrollableCapsules = React.memo(function ScrollableCapsules({
@@ -25,8 +26,18 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
   tooltip,
   emptyMessage,
   isLoading,
-  hideZeroCount = false
+  hideZeroCount = false,
+  maxRows = 1
 }: ScrollableCapsulesProps) {
+  const visibleOptions = React.useMemo(() => {
+    return options.filter(opt => {
+      if (!hideZeroCount || !counts) return true;
+      return selectedOptions.includes(opt) || (counts[opt] || 0) > 0;
+    });
+  }, [options, hideZeroCount, counts, selectedOptions]);
+
+  const actualRows = Math.min(maxRows, visibleOptions.length > 0 ? visibleOptions.length : 1);
+
   return (
     <div className="w-full min-w-0 max-w-full">
       {label && (
@@ -46,8 +57,18 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
 
       {/* Scrollable Container */}
       <div
-        className="flex overflow-x-auto py-2 -mx-2 px-2 scrollbar-hide space-x-2 w-full snap-x snap-mandatory min-w-0"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className={cn(
+          "overflow-x-auto py-2 -mx-2 px-2 scrollbar-hide gap-2 w-full min-w-0",
+          maxRows > 1 ? "grid" : "flex space-x-2 snap-x snap-mandatory"
+        )}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          ...(maxRows > 1 && {
+            gridAutoFlow: 'column',
+            gridTemplateRows: `repeat(${actualRows}, min-content)`,
+            justifyItems: 'start'
+          })
+        }}
         role="group"
         aria-label={label || "Capsule Filter Group"}
       >
@@ -56,7 +77,10 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
           Array.from({ length: 4 }).map((_, idx) => (
             <div
               key={`skeleton-${idx}`}
-              className="snap-center flex-shrink-0 py-2 px-8 rounded-full h-[38px] w-24 bg-gray-200 dark:bg-gray-800 animate-pulse border border-transparent"
+              className={cn(
+                "flex-shrink-0 py-2 px-8 rounded-full h-[38px] w-24 bg-gray-200 dark:bg-gray-800 animate-pulse border border-transparent",
+                maxRows === 1 && "snap-center"
+              )}
             />
           ))
         ) : options.length === 0 && emptyMessage ? (
@@ -65,10 +89,7 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
             {emptyMessage}
           </div>
         ) : (
-          options.filter(opt => {
-              if (!hideZeroCount || !counts) return true;
-              return selectedOptions.includes(opt) || (counts[opt] || 0) > 0;
-          }).map(option => {
+          visibleOptions.map(option => {
               const count = counts?.[option] || 0;
               const isSelected = selectedOptions.includes(option);
               const isDisabled = !isSelected && count === 0;
@@ -81,7 +102,8 @@ export const ScrollableCapsules = React.memo(function ScrollableCapsules({
                     disabled={isDisabled}
                     aria-pressed={isSelected}
                     className={cn(
-                        "snap-center flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
+                        "flex-shrink-0 whitespace-nowrap py-2 px-4 rounded-full text-sm font-semibold transition-all duration-200 border flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
+                        maxRows === 1 && "snap-center",
                         isSelected
                             ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 dark:shadow-none scale-[1.02]"
                             : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
