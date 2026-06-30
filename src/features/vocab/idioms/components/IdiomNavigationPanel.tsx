@@ -16,6 +16,18 @@ interface IdiomNavigationPanelProps {
   onJump: (index: number) => void;
 }
 
+
+const IDIOM_SORT_OPTIONS = [
+  { value: 'default', label: 'Default Order' },
+  { value: 'alphabetical_asc', label: 'Alphabetical (A-Z)' },
+  { value: 'alphabetical_desc', label: 'Alphabetical (Z-A)' },
+  { value: 'difficulty_asc', label: 'Difficulty (Easy First)' },
+  { value: 'difficulty_desc', label: 'Difficulty (Hard First)' },
+  { value: 'exam_year_desc', label: 'Latest Exam First' },
+  { value: 'exam_year_asc', label: 'Oldest Exam First' },
+  { value: 'surprise', label: 'Surprise (Random)' }
+];
+
 export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
   isOpen, onClose, idioms, currentIndex, onJump
 }) => {
@@ -51,6 +63,7 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
       chunkSizeStorageKey={APP_CONFIG.STORAGE_KEYS.IDIOMS_BATCH_SIZE}
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
+      sortOptions={IDIOM_SORT_OPTIONS}
       renderItem={(idiom, globalIdx, isCurrent, closePanel, jumpTo) => {
         const status = getInteractionStatus ? getInteractionStatus(idiom) : undefined;
         const isKnown = getKnownStatus ? getKnownStatus(idiom) : false;

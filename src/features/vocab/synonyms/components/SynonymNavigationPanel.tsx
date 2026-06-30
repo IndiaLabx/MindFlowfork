@@ -13,6 +13,24 @@ interface SynonymNavigationPanelProps {
   onJump: (index: number) => void;
 }
 
+
+const SYNONYM_SORT_OPTIONS = [
+  { value: 'default', label: 'Default Order' },
+  { value: 'alphabetical_asc', label: 'Alphabetical (A-Z)' },
+  { value: 'alphabetical_desc', label: 'Alphabetical (Z-A)' },
+  { value: 'difficulty_asc', label: 'Difficulty (Easy First)' },
+  { value: 'difficulty_desc', label: 'Difficulty (Hard First)' },
+  { value: 'importance_desc', label: 'Importance Score (High-Low)' },
+  { value: 'importance_asc', label: 'Importance Score (Low-High)' },
+  { value: 'frequency_desc', label: 'Most Frequent' },
+  { value: 'frequency_asc', label: 'Least Frequent' },
+  { value: 'trending_desc', label: 'Trending First' },
+  { value: 'trending_asc', label: 'Least Trending' },
+  { value: 'exam_year_desc', label: 'Latest Exam First' },
+  { value: 'exam_year_asc', label: 'Oldest Exam First' },
+  { value: 'surprise', label: 'Surprise (Random)' }
+];
+
 export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
@@ -47,6 +65,7 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
       chunkSizeStorageKey="synonym_batch_size_v1"
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
+      sortOptions={SYNONYM_SORT_OPTIONS}
       renderGroupContainer={(children) => (
         <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 animate-in slide-in-from-top-2 fade-in duration-200">
           {children}
