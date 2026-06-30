@@ -16,6 +16,24 @@ interface OWSNavigationPanelProps {
   onJump: (index: number) => void;
 }
 
+
+const OWS_SORT_OPTIONS = [
+  { value: 'default', label: 'Default Order' },
+  { value: 'alphabetical_asc', label: 'Alphabetical (A-Z)' },
+  { value: 'alphabetical_desc', label: 'Alphabetical (Z-A)' },
+  { value: 'difficulty_asc', label: 'Difficulty (Easy First)' },
+  { value: 'difficulty_desc', label: 'Difficulty (Hard First)' },
+  { value: 'importance_desc', label: 'Importance Score (High-Low)' },
+  { value: 'importance_asc', label: 'Importance Score (Low-High)' },
+  { value: 'repetition_desc', label: 'Most Repeated' },
+  { value: 'repetition_asc', label: 'Least Repeated' },
+  { value: 'last_asked_desc', label: 'Latest Asked First' },
+  { value: 'last_asked_asc', label: 'Oldest Asked First' },
+  { value: 'exam_year_desc', label: 'Latest Exam First' },
+  { value: 'exam_year_asc', label: 'Oldest Exam First' },
+  { value: 'surprise', label: 'Surprise (Random)' }
+];
+
 export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
@@ -51,6 +69,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       chunkSizeStorageKey={APP_CONFIG.STORAGE_KEYS.OWS_BATCH_SIZE}
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
+      sortOptions={OWS_SORT_OPTIONS}
       renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo) => {
         const isKnown = getKnownStatus ? getKnownStatus(item) : false;
         let statusColor = "bg-gray-300 dark:bg-gray-600";
