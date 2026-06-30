@@ -2,19 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
 import { cn } from '../../../utils/cn';
-import { DownloadOptionsModal } from '../../../components/ui/DownloadOptionsModal';
-import { DownloadReadyModal } from '../../../components/ui/DownloadReadyModal';
-import { DownloadResult } from '../../../hooks/useJSONDownloader';
-import { SortOrder } from '../../quiz/stores/useFlashcardStore';
 
 export type PanelThemeColor = 'teal' | 'amber' | 'blue';
 
-export interface FlashcardNavigationPanelBaseProps<T> {
+export interface SortOption {
+  label: string;
+  value: string;
+}
+
+export interface FlashcardSidePanelProps<T> {
   isOpen: boolean;
   onClose: () => void;
   data: T[];
   currentIndex: number;
-  onJump: (index: number) => void;
+  onItemSelected: (index: number) => void;
 
   title: string;
   totalLabel?: string;
@@ -24,21 +25,18 @@ export interface FlashcardNavigationPanelBaseProps<T> {
   batchOptions?: number[];
   defaultChunkSize?: number;
 
-  currentSortOrder?: SortOrder;
-  onSortOrderChange?: (order: SortOrder, currentId?: string) => void;
-  currentId?: string; // used for sort order change if needed
+  currentSortOrder?: string;
+  onSortOrderChange?: (order: string) => void;
+  sortOptions?: SortOption[];
 
   // Render functions
-  renderItem: (item: T, globalIdx: number, isCurrent: boolean, onClose: () => void, onJump: (idx: number) => void) => React.ReactNode;
+  renderItem: (item: T, globalIdx: number, isCurrent: boolean, onClose: () => void, onItemSelected: (idx: number) => void) => React.ReactNode;
   renderGroupContainer?: (children: React.ReactNode) => React.ReactNode;
 
   // Downloads
-  isGeneratingPDF?: boolean;
-  isGeneratingJSON?: boolean;
-  pdfError?: Error | null;
-  jsonError?: Error | null;
-  onDownloadPDF?: (start: number, end: number, chunkIndex: number) => Promise<DownloadResult | null>;
-  onDownloadJSON?: (start: number, end: number, chunkIndex: number) => Promise<DownloadResult | null>;
+  isGeneratingDownload?: boolean;
+  downloadingChunkIndex?: number | null;
+  onDownloadRequest?: (chunkIndex: number, start: number, end: number) => void;
 }
 
 const themeClasses = {
@@ -89,12 +87,12 @@ const themeClasses = {
   }
 };
 
-export function FlashcardNavigationPanelBase<T>({
+export function FlashcardSidePanel<T>({
   isOpen,
   onClose,
   data,
   currentIndex,
-  onJump,
+  onItemSelected,
   title,
   totalLabel = "items total",
   themeColor,
@@ -103,26 +101,14 @@ export function FlashcardNavigationPanelBase<T>({
   defaultChunkSize = 50,
   currentSortOrder,
   onSortOrderChange,
-  currentId,
+  sortOptions,
   renderItem,
   renderGroupContainer,
-  isGeneratingPDF = false,
-  isGeneratingJSON = false,
-  pdfError,
-  jsonError,
-  onDownloadPDF,
-  onDownloadJSON,
-}: FlashcardNavigationPanelBaseProps<T>) {
+  isGeneratingDownload = false,
+  downloadingChunkIndex = null,
+  onDownloadRequest,
+}: FlashcardSidePanelProps<T>) {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
-  const [downloadingChunk, setDownloadingChunk] = useState<number | null>(null);
-
-  const [downloadModalState, setDownloadModalState] = useState<{
-    chunkIndex: number;
-    start: number;
-    end: number;
-  } | null>(null);
-
-  const [downloadReadyInfo, setDownloadReadyInfo] = useState<(DownloadResult & { type: 'pdf' | 'json' }) | null>(null);
 
   const [chunkSize, setChunkSize] = useState<number>(() => {
     try {
@@ -160,39 +146,10 @@ export function FlashcardNavigationPanelBase<T>({
 
   const handleDownloadClick = (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
     e.stopPropagation();
-    if (isGeneratingPDF || isGeneratingJSON) return;
-    setDownloadModalState({ chunkIndex, start, end });
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!downloadModalState || !onDownloadPDF) return;
-    const { chunkIndex, start, end } = downloadModalState;
-    setDownloadingChunk(chunkIndex);
-    const result = await onDownloadPDF(start, end, chunkIndex);
-    setDownloadingChunk(null);
-    setDownloadModalState(null);
-    if (result) {
-      setDownloadReadyInfo({ ...result, type: 'pdf' });
+    if (isGeneratingDownload) return;
+    if (onDownloadRequest) {
+      onDownloadRequest(chunkIndex, start, end);
     }
-  };
-
-  const handleDownloadJSON = async () => {
-    if (!downloadModalState || !onDownloadJSON) return;
-    const { chunkIndex, start, end } = downloadModalState;
-    setDownloadingChunk(chunkIndex);
-    const result = await onDownloadJSON(start, end, chunkIndex);
-    setDownloadingChunk(null);
-    setDownloadModalState(null);
-    if (result) {
-      setDownloadReadyInfo({ ...result, type: 'json' });
-    }
-  };
-
-  const handleCloseDownloadReady = () => {
-    if (downloadReadyInfo?.url) {
-      URL.revokeObjectURL(downloadReadyInfo.url);
-    }
-    setDownloadReadyInfo(null);
   };
 
   return createPortal(
@@ -203,7 +160,6 @@ export function FlashcardNavigationPanelBase<T>({
       />
 
       <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[70] flex flex-col border-l border-gray-200 dark:border-gray-700 animate-in slide-in-from-right duration-300">
-        {/* Header */}
         <div className={cn("p-5 border-b space-y-3", theme.header)}>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -220,7 +176,7 @@ export function FlashcardNavigationPanelBase<T>({
             </button>
           </div>
 
-          {onSortOrderChange && currentSortOrder && (
+          {onSortOrderChange && currentSortOrder && sortOptions && sortOptions.length > 0 && (
             <div className={cn("flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border", theme.controlWrapper)}>
               <div className="flex items-center gap-1.5 pl-1">
                  <ListFilter className={cn("w-3.5 h-3.5", theme.controlIcon)} />
@@ -231,20 +187,12 @@ export function FlashcardNavigationPanelBase<T>({
               <select
                 id="sort-order"
                 value={currentSortOrder}
-                onChange={(e) => { onSortOrderChange(e.target.value as SortOrder, currentId); onClose(); }}
+                onChange={(e) => { onSortOrderChange(e.target.value); onClose(); }}
                 className={cn("text-sm font-medium border-none rounded py-1 pl-2 pr-6 cursor-pointer outline-none w-36 overflow-hidden text-ellipsis whitespace-nowrap", theme.select)}
               >
-                <option value="default">Default Order</option>
-                <option value="alphabetical_asc">Alphabetical (A-Z)</option>
-                <option value="alphabetical_desc">Alphabetical (Z-A)</option>
-                <option value="difficulty_asc">Difficulty (Easy First)</option>
-                <option value="difficulty_desc">Difficulty (Hard First)</option>
-                <option value="surprise">Surprise (Random)</option>
-                {/* these extra options from OWS won't hurt others if we include them, or we can just pass the select content as children. Let's pass the options down or keep them comprehensive here. */}
-                <option value="importance_desc">Importance Score (High-Low)</option>
-                <option value="importance_asc">Importance Score (Low-High)</option>
-                <option value="repetition_desc">Most Repeated</option>
-                <option value="repetition_asc">Least Repeated</option>
+                {sortOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
           )}
@@ -264,21 +212,14 @@ export function FlashcardNavigationPanelBase<T>({
               ))}
             </select>
           </div>
-
-          {(pdfError || jsonError) && (
-             <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 text-red-600 dark:text-red-400 text-xs rounded">
-               Failed to generate download. Please try again.
-             </div>
-          )}
         </div>
 
-        {/* Content List */}
         <div className={cn("flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-slate-900 scrollbar-thin", theme.scrollbar)}>
           {Array.from({ length: totalChunks }).map((_, chunkIndex) => {
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, data.length);
             const isOpen = openGroups.has(chunkIndex);
-            const isDownloading = downloadingChunk === chunkIndex;
+            const isDownloading = downloadingChunkIndex === chunkIndex;
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
             return (
@@ -295,10 +236,10 @@ export function FlashcardNavigationPanelBase<T>({
                 >
                   <span>Words {start + 1} - {end}</span>
                   <div className="flex items-center gap-2">
-                     {(onDownloadPDF || onDownloadJSON) && (
+                     {onDownloadRequest && (
                        <button
                           onClick={(e) => handleDownloadClick(e, chunkIndex, start, end)}
-                          disabled={isGeneratingPDF || isGeneratingJSON}
+                          disabled={isGeneratingDownload}
                           className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-current transition-colors disabled:opacity-50"
                           title="Download Flashcards"
                        >
@@ -316,12 +257,12 @@ export function FlashcardNavigationPanelBase<T>({
                 {isOpen && (
                   renderGroupContainer ? renderGroupContainer(
                     data.slice(start, end).map((item, localIdx) =>
-                      renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onJump)
+                      renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onItemSelected)
                     )
                   ) : (
                     <div className="p-2 flex flex-col gap-1 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
                       {data.slice(start, end).map((item, localIdx) =>
-                        renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onJump)
+                        renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onItemSelected)
                       )}
                     </div>
                   )
@@ -331,24 +272,6 @@ export function FlashcardNavigationPanelBase<T>({
           })}
         </div>
       </div>
-
-      <DownloadOptionsModal
-        isOpen={!!downloadModalState}
-        onClose={() => !isGeneratingPDF && !isGeneratingJSON && setDownloadModalState(null)}
-        onDownloadPDF={handleDownloadPDF}
-        onDownloadJSON={handleDownloadJSON}
-        isGeneratingPDF={isGeneratingPDF}
-        isGeneratingJSON={isGeneratingJSON}
-      />
-
-      <DownloadReadyModal
-        isOpen={!!downloadReadyInfo}
-        onClose={handleCloseDownloadReady}
-        fileUrl={downloadReadyInfo?.url || ''}
-        fileName={downloadReadyInfo?.fileName || ''}
-        blob={downloadReadyInfo?.blob}
-        fileType={downloadReadyInfo?.type}
-      />
     </>,
     document.body
   );
