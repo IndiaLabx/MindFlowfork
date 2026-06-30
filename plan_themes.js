@@ -1,0 +1,25 @@
+const owsTheme = {
+  headerBg: "bg-teal-50",
+  headerBorder: "border-teal-100",
+  iconBg: "bg-teal-100",
+  iconColor: "text-teal-600",
+  titleColor: "text-teal-900",
+  subtitleColor: "text-teal-700",
+  closeButtonHover: "hover:bg-teal-200/50",
+  closeButtonText: "text-teal-800",
+  controlBorder: "border-teal-200",
+  controlIconColor: "text-teal-800",
+  controlLabelColor: "text-teal-800",
+  selectText: "text-teal-900",
+  selectBg: "bg-teal-50",
+  selectRing: "focus:ring-teal-500",
+  scrollbarThumb: "scrollbar-thumb-teal-200",
+  itemBorderCurrent: "border-teal-300",
+  itemHeaderBgCurrent: "bg-teal-50 text-teal-800",
+  itemHeaderChevronOpen: "text-teal-500",
+  itemCurrentBg: "bg-teal-100 dark:bg-teal-900/40 text-teal-900 dark:text-teal-100 ring-teal-300",
+  itemHoverBg: "hover:bg-teal-50 dark:hover:bg-gray-700/50",
+  itemCurrentNumber: "text-teal-700 dark:text-teal-300",
+};
+
+// ... we can just observe these patterns to create a type and object in FlashcardNavigationPanelBase.tsx
