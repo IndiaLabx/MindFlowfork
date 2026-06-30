@@ -1,0 +1,32 @@
+1. Create a generic component `FlashcardNavigationPanelBase` (maybe in `src/features/flashcards/components/FlashcardNavigationPanelBase.tsx` or similar shared location) that handles the drawer UI, the download modals, sort/group controls, and expanding lists.
+   - Props should include:
+     - `isOpen`, `onClose`
+     - `data` (an array of generic items `T`)
+     - `currentIndex`, `onJump`
+     - `title`, `totalLabel` (e.g. "Words", "Idioms")
+     - `themeColor` ('teal' | 'amber' | 'blue')
+     - `chunkSizeStorageKey`
+     - `renderItem` (a function to render the individual item button)
+     - PDF/JSON generator functions or hooks (we can pass down the necessary functions like `generatePDF`, `downloadJSON`). Or we can accept generic `onDownloadPDF` and `onDownloadJSON` callbacks that take the `start` and `end` index or the chunk of data, and manage the `isGenerating` state inside or outside. Let's pass the generator callbacks to keep the base component generic.
+     - `sortOptions` (whether to show the sort dropdown and what options it has. Since they all use `useFlashcardStore`, we can probably just use `useFlashcardStore` inside the base component or pass the current sort value and `onChange` callback).
+
+2. Implement `FlashcardNavigationPanelBase`.
+   - Take the UI structure directly from OWS (`src/features/vocab/ows/components/OWSNavigationPanel.tsx`).
+   - Fix the theme colors to use dynamic classes or a map based on `themeColor` prop. (e.g., `theme === 'teal' ? 'bg-teal-50 text-teal-800...' : ...`). Wait, Tailwind doesn't support dynamic string interpolation well. Best to pass an object of class names or just write a helper function `getThemeClasses(theme)` that returns the static Tailwind classes.
+   - Refactor the sort selector to be robust and not overflow (maybe wrap it in a `div` or use text-ellipsis).
+   - Ensure the group size selector works.
+   - Integrate the `DownloadOptionsModal` and `DownloadReadyModal` logic.
+
+3. Refactor `OWSNavigationPanel.tsx` to use `FlashcardNavigationPanelBase`.
+   - Pass the OWS specific `renderItem` (the button with the number, green dot, and word).
+   - Test that OWS works identically.
+
+4. Refactor `IdiomNavigationPanel.tsx` to use `FlashcardNavigationPanelBase`.
+   - Pass the Idioms specific `renderItem`.
+   - Test that the idiom map now renders correctly without mobile layout defects.
+
+5. Refactor `SynonymNavigationPanel.tsx` to use `FlashcardNavigationPanelBase`.
+   - Pass the Synonyms specific `renderItem`.
+   - Ensure the sort functionality now correctly appears.
+
+Wait, the current sort functionality uses `useFlashcardStore`. Does Synonyms use `useFlashcardStore` for sorting? I should check.
