@@ -4,6 +4,9 @@ import { cn } from '../../../../utils/cn';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../../hooks/useJSONDownloader';
 import { FlashcardSidePanel } from '../../../../components/ui/FlashcardSidePanel';
+import { LearningStatus } from '../../../../utils/learning/statusColors';
+import { useSynonymProgress } from '../hooks/useSynonymProgress';
+
 
 interface SynonymNavigationPanelProps {
   isOpen: boolean;
@@ -37,6 +40,16 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
   const currentSortOrder = useFlashcardStore(state => state.currentSortOrder);
   const setSortOrder = useFlashcardStore(state => state.setSortOrder);
 
+  const { getStatus } = useSynonymProgress();
+  const getLearningStatus = (item: any): LearningStatus => {
+    const status = getStatus ? getStatus(item) : 'new';
+    if (status === 'mastered') return 'mastered';
+    if (status === 'familiar') return 'familiar';
+    if (status === 'new') return 'new';
+    return 'unseen';
+  };
+
+
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateSynonymPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<any>();
 
@@ -66,12 +79,13 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
       sortOptions={SYNONYM_SORT_OPTIONS}
+      getLearningStatus={getLearningStatus}
       renderGroupContainer={(children) => (
         <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 animate-in slide-in-from-top-2 fade-in duration-200">
           {children}
         </div>
       )}
-      renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo) => {
+      renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo, learningStatus, statusColor) => {
         return (
           <button
             key={item.word} // Ensure key uniqueness
@@ -79,7 +93,7 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
               jumpTo(globalIdx);
               closePanel();
             }}
-            title={item.word}
+            title={`${item.word} - ${learningStatus || 'unseen'}`}
             className={cn(
               "aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all relative overflow-hidden",
               isCurrent
@@ -87,6 +101,9 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
                 : "bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-400 hover:text-blue-900 dark:hover:text-blue-200"
             )}
           >
+            {statusColor && !isCurrent && (
+                <div className={cn("absolute top-1 right-1 w-2 h-2 rounded-full", statusColor)} />
+            )}
             {globalIdx + 1}
           </button>
         );

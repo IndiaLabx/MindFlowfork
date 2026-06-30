@@ -7,6 +7,8 @@ import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../../hooks/useJSONDownloader';
 import { FlashcardSidePanel } from '../../../../components/ui/FlashcardSidePanel';
+import { LearningStatus } from '../../../../utils/learning/statusColors';
+
 
 interface OWSNavigationPanelProps {
   isOpen: boolean;
@@ -41,6 +43,13 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   const currentSortOrder = useFlashcardStore(state => state.currentSortOrder);
   const setSortOrder = useFlashcardStore(state => state.setSortOrder);
 
+  const getLearningStatus = (item: OneWord): LearningStatus => {
+    const isKnown = getKnownStatus ? getKnownStatus(item) : false;
+    if (isKnown) return 'known';
+    return 'unseen';
+  };
+
+
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<OneWord>();
 
@@ -70,10 +79,8 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
       sortOptions={OWS_SORT_OPTIONS}
-      renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo) => {
-        const isKnown = getKnownStatus ? getKnownStatus(item) : false;
-        let statusColor = "bg-gray-300 dark:bg-gray-600";
-        if (isKnown) statusColor = "bg-teal-500";
+      getLearningStatus={getLearningStatus}
+      renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo, learningStatus, statusColor = "bg-gray-300 dark:bg-gray-600") => {
 
         return (
           <button
@@ -96,7 +103,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
             )}>
               {globalIdx + 1}
             </span>
-            <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColor)} title={isKnown ? 'Known' : 'Unseen'} />
+            <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColor)} title={learningStatus || 'unseen'} />
             <span className="truncate flex-1">
               {item.content.word}
             </span>

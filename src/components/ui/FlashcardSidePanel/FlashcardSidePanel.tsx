@@ -1,3 +1,4 @@
+import { LearningStatus, getLearningStatusColor } from '../../../utils/learning/statusColors';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
@@ -30,7 +31,8 @@ export interface FlashcardSidePanelProps<T> {
   sortOptions?: SortOption[];
 
   // Render functions
-  renderItem: (item: T, globalIdx: number, isCurrent: boolean, onClose: () => void, onItemSelected: (idx: number) => void) => React.ReactNode;
+  getLearningStatus?: (item: T) => LearningStatus;
+  renderItem: (item: T, globalIdx: number, isCurrent: boolean, onClose: () => void, onItemSelected: (idx: number) => void, learningStatus?: LearningStatus, statusColor?: string) => React.ReactNode;
   renderGroupContainer?: (children: React.ReactNode) => React.ReactNode;
 
   // Downloads
@@ -102,6 +104,7 @@ export function FlashcardSidePanel<T>({
   currentSortOrder,
   onSortOrderChange,
   sortOptions,
+  getLearningStatus,
   renderItem,
   renderGroupContainer,
   isGeneratingDownload = false,
@@ -256,14 +259,18 @@ export function FlashcardSidePanel<T>({
 
                 {isOpen && (
                   renderGroupContainer ? renderGroupContainer(
-                    data.slice(start, end).map((item, localIdx) =>
-                      renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onItemSelected)
-                    )
+                    data.slice(start, end).map((item, localIdx) => {
+                      const status = getLearningStatus ? getLearningStatus(item) : undefined;
+                      const statusColor = status ? getLearningStatusColor(status) : undefined;
+                      return renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onItemSelected, status, statusColor);
+                    })
                   ) : (
                     <div className="p-2 flex flex-col gap-1 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 fade-in duration-200">
-                      {data.slice(start, end).map((item, localIdx) =>
-                        renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onItemSelected)
-                      )}
+                      {data.slice(start, end).map((item, localIdx) => {
+                        const status = getLearningStatus ? getLearningStatus(item) : undefined;
+                        const statusColor = status ? getLearningStatusColor(status) : undefined;
+                        return renderItem(item, start + localIdx, (start + localIdx) === currentIndex, onClose, onItemSelected, status, statusColor);
+                      })}
                     </div>
                   )
                 )}

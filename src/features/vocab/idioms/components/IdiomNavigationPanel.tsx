@@ -7,6 +7,8 @@ import { APP_CONFIG } from '../../../../constants/config';
 import { usePDFGenerator } from '../../../../hooks/usePDFGenerator';
 import { useJSONDownloader } from '../../../../hooks/useJSONDownloader';
 import { FlashcardSidePanel } from '../../../../components/ui/FlashcardSidePanel';
+import { LearningStatus } from '../../../../utils/learning/statusColors';
+
 
 interface IdiomNavigationPanelProps {
   isOpen: boolean;
@@ -34,6 +36,21 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
   const { getInteractionStatus, getKnownStatus } = useIdiomProgress();
   const currentSortOrder = useFlashcardStore(state => state.currentSortOrder);
   const setSortOrder = useFlashcardStore(state => state.setSortOrder);
+
+  const getLearningStatus = (idiom: Idiom): LearningStatus => {
+    const interaction = getInteractionStatus ? getInteractionStatus(idiom) : undefined;
+
+    if (interaction === 'mastered') return 'mastered';
+    if (interaction === 'review') return 'review';
+    if (interaction === 'tricky') return 'tricky';
+    if (interaction === 'clueless') return 'clueless';
+
+    const isKnown = getKnownStatus ? getKnownStatus(idiom) : false;
+    if (isKnown) return 'known';
+
+    return 'unseen';
+  };
+
 
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../../ows/utils/pdfGenerator').then(m => m.generateOWSPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<Idiom>();
@@ -64,16 +81,8 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
       currentSortOrder={currentSortOrder}
       onSortOrderChange={setSortOrder}
       sortOptions={IDIOM_SORT_OPTIONS}
-      renderItem={(idiom, globalIdx, isCurrent, closePanel, jumpTo) => {
-        const status = getInteractionStatus ? getInteractionStatus(idiom) : undefined;
-        const isKnown = getKnownStatus ? getKnownStatus(idiom) : false;
-
-        let statusColor = "bg-gray-300 dark:bg-gray-600";
-        if (status === 'mastered') statusColor = "bg-green-500";
-        else if (status === 'review') statusColor = "bg-blue-500";
-        else if (status === 'tricky') statusColor = "bg-orange-500";
-        else if (status === 'clueless') statusColor = "bg-red-500";
-        else if (isKnown) statusColor = "bg-teal-500";
+      getLearningStatus={getLearningStatus}
+      renderItem={(idiom, globalIdx, isCurrent, closePanel, jumpTo, learningStatus, statusColor = "bg-gray-300 dark:bg-gray-600") => {
 
         return (
           <button
@@ -96,7 +105,7 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
             )}>
               {globalIdx + 1}
             </span>
-            <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColor)} title={status || (isKnown ? 'Known' : 'Unseen')} />
+            <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColor)} title={learningStatus || 'unseen'} />
             <span className="truncate flex-1">
               {idiom.content.phrase}
             </span>
