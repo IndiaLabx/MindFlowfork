@@ -89,6 +89,7 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
         return (
           <button
             key={item.word} // Ensure key uniqueness
+            id={`flashcard-item-${globalIdx}`}
             onClick={() => {
               jumpTo(globalIdx);
               closePanel();

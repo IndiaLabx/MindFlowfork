@@ -87,6 +87,7 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
         return (
           <button
             key={idiom.id}
+            id={`flashcard-item-${globalIdx}`}
             onClick={() => {
               jumpTo(globalIdx);
               closePanel();

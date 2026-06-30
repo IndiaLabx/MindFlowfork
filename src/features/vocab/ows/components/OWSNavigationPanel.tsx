@@ -85,6 +85,7 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
         return (
           <button
             key={item.id}
+            id={`flashcard-item-${globalIdx}`}
             onClick={() => {
               jumpTo(globalIdx);
               closePanel();

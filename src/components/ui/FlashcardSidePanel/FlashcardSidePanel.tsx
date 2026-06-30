@@ -129,7 +129,23 @@ export function FlashcardSidePanel<T>({
   useEffect(() => {
     if (isOpen) {
       const currentGroup = Math.floor(currentIndex / chunkSize);
-      setOpenGroups(new Set([currentGroup]));
+      setOpenGroups(prev => {
+        const next = new Set(prev);
+        next.add(currentGroup);
+        return next;
+      });
+
+      // We need to wait for React to commit the DOM update (expanding the group)
+      // and for the browser to paint before scrolling. Double requestAnimationFrame
+      // is a robust way to ensure we scroll after the element is in the DOM.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const element = document.getElementById(`flashcard-item-${currentIndex}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      });
     }
   }, [isOpen, currentIndex, chunkSize]);
 
