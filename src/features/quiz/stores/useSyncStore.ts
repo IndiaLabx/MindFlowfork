@@ -13,6 +13,7 @@ interface SyncState {
   addEvent: (event: Omit<SyncEvent, 'id' | 'timestamp'>) => void;
   removeEvents: (eventIds: string[]) => void;
   clearQueue: () => void;
+  resetStore: () => void;
 }
 
 export const useSyncStore = create<SyncState>()(
@@ -35,7 +36,8 @@ export const useSyncStore = create<SyncState>()(
         queue: state.queue.filter(event => !eventIds.includes(event.id))
       })),
 
-      clearQueue: () => set({ queue: [] })
+      clearQueue: () => set({ queue: [] }),
+      resetStore: () => set({ queue: [] })
     }),
     {
       name: 'mindflow-sync-queue',

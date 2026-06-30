@@ -16,6 +16,7 @@ interface DeckSessionState {
   pauseSession: () => void;
   resumeSession: () => void;
   endSession: () => void;
+  resetStore: () => void;
 }
 
 const initialDeckState: DeckState = {
@@ -100,6 +101,16 @@ export const useDeckSessionStore = create<DeckSessionState>((set, get) => ({
     set((store) => ({
       state: { ...store.state, isPaused: false }
     }));
+  },
+
+  resetStore: () => {
+    set({
+      isActive: false,
+      deckId: null,
+      vocabType: null,
+      words: [],
+      state: initialDeckState
+    });
   },
 
   endSession: () => {

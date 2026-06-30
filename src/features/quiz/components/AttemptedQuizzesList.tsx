@@ -11,6 +11,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../auth/context/AuthContext';
 import { ErrorState, QueryStateHandler } from '../../../components/ui/ErrorState';
 
 /**
@@ -35,8 +36,10 @@ interface AttemptedQuizzesListProps {
 export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { user, isAuthTransitioning } = useAuth();
     const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
-        queryKey: ['attempted-quizzes'],
+        queryKey: ['attempted-quizzes', user?.id],
+        enabled: !!user && !isAuthTransitioning,
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return [];
@@ -84,7 +87,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+        queryClient.invalidateQueries({ queryKey: ['attempted-quizzes', user?.id] });
 
         const handleSyncStart = () => {
             setIsSyncing(true);
@@ -92,7 +95,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
 
         const handleSyncComplete = () => {
             setTimeout(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['attempted-quizzes'] });
+                await queryClient.invalidateQueries({ queryKey: ['attempted-quizzes', user?.id] });
                 setIsSyncing(false);
             }, 100);
         };
@@ -123,7 +126,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
             try {
                 const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
-                queryClient.setQueryData(['attempted-quizzes'], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
+                queryClient.setQueryData(['attempted-quizzes', user?.id], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
             } catch (error) {
                 console.error("Failed to delete quiz:", error);
             }
@@ -134,7 +137,7 @@ export const AttemptedQuizzesList: React.FC<AttemptedQuizzesListProps> = ({ view
         try {
             const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
             if (error) throw error;
-            queryClient.setQueryData(['attempted-quizzes'], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
+            queryClient.setQueryData(['attempted-quizzes', user?.id], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
         } catch (error) {
             console.error("Failed to update quiz name:", error);
         }

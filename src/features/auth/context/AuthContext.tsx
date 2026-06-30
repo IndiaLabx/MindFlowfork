@@ -25,6 +25,7 @@ interface AuthContextType {
   user: User | null;
   /** True if the initial session check is still in progress. */
   loading: boolean;
+  isAuthTransitioning: boolean;
   /** Function to sign out the current user. */
   signOut: () => Promise<void>;
   /** Function to manually refresh user data from the server. */
@@ -57,6 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [deleteRequestedAt, setDeleteRequestedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
   const [sessionConflict, setSessionConflict] = useState(false);
   const lastSyncedUserId = useRef<string | null>(null);
   const queryClient = useQueryClient();
@@ -259,6 +261,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // If explicitly signed out by Supabase event (e.g. session expired, logged out elsewhere)
         if (event === 'SIGNED_OUT') {
            useQuizSessionStore.getState().resetStore();
+    import('../../quiz/stores/useAnalyticsStore').then(m => m.useAnalyticsStore.getState().resetAnalytics());
+    import('../../quiz/stores/useFlashcardStore').then(m => m.useFlashcardStore.getState().resetSession());
+    import('../../quiz/stores/useSyncStore').then(m => m.useSyncStore.getState().resetStore());
+    import('../../quiz/stores/useBookmarkStore').then(m => m.useBookmarkStore.getState().resetStore());
+    import('../../community/stores/useSocialStore').then(m => m.useSocialStore.getState().resetStore());
+    import('../../vocab/stores/useDeckSessionStore').then(m => m.useDeckSessionStore.getState().resetStore());
+    queryClient.clear();
            db.clearAllUserData().catch(console.error);
         }
       }
@@ -273,44 +282,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /** Signs out the current user (Intentional Logout). */
   const signOut = async () => {
     console.log("[Diagnostic] signOut START");
-    console.log("[Diagnostic] calling supabase.auth.signOut({ scope: 'global' })");
-    const localSessionId = localStorage.getItem(SESSION_ID_KEY);
-    localStorage.removeItem(SESSION_ID_KEY);
-
-    // Only delete from DB if we actually have a user, to clean up on explicit logout
-    if (user && localSessionId) {
-      // Best effort deletion.
-      supabase.from('user_active_sessions').delete().eq('user_id', user.id).eq('session_token', localSessionId).then(({ error }) => { if (error) console.error('Error deleting active session:', error); });
-    }
+    setIsAuthTransitioning(true);
 
     try {
-      await supabase.auth.signOut({ scope: 'global' });
-    } catch (err) {
-      console.error("[AuthStabilization] supabase.auth.signOut threw, but continuing cleanup:", err);
+      // 1. Immediately purge React Query Cache
+      queryClient.clear();
+
+      // 2. Immediately purge all user-scoped Zustand stores
+      const { useQuizSessionStore } = await import('../../quiz/stores/useQuizSessionStore');
+      const { useAnalyticsStore } = await import('../../quiz/stores/useAnalyticsStore');
+      const { useFlashcardStore } = await import('../../quiz/stores/useFlashcardStore');
+      const { useSyncStore } = await import('../../quiz/stores/useSyncStore');
+      const { useBookmarkStore } = await import('../../quiz/stores/useBookmarkStore');
+      const { useSocialStore } = await import('../../community/stores/useSocialStore');
+      const { useDeckSessionStore } = await import('../../vocab/stores/useDeckSessionStore');
+
+      useQuizSessionStore.getState().resetStore();
+      useAnalyticsStore.getState().resetAnalytics();
+      useFlashcardStore.getState().resetSession();
+      useSyncStore.getState().resetStore();
+      useBookmarkStore.getState().resetStore();
+      useSocialStore.getState().resetStore();
+      useDeckSessionStore.getState().resetStore();
+
+      const localSessionId = localStorage.getItem(SESSION_ID_KEY);
+      localStorage.removeItem(SESSION_ID_KEY);
+
+      // Only delete from DB if we actually have a user, to clean up on explicit logout
+      if (user && localSessionId) {
+        // Best effort deletion.
+        supabase.from('user_active_sessions').delete().eq('user_id', user.id).eq('session_token', localSessionId).then(({ error }) => { if (error) console.error('Error deleting active session:', error); });
+      }
+
+      // Also remove Zustand persist cache from localStorage
+      const keysToRemove = [
+        'mindflow-social-mode',
+        'mindflow_analytics',
+        'mindflow_idiom_session',
+        'mindflow_ows_session',
+        'mindflow_synonym_session',
+        'mindflow_sync_queue',
+        'mindflow_bookmarks',
+        'mindflow_flashcard_filters',
+        'mindflow_is_signup'
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      window.dispatchEvent(new Event('mindflow-sync-complete'));
+
+      console.log("[Diagnostic] calling supabase.auth.signOut({ scope: 'global' })");
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.error("[AuthStabilization] supabase.auth.signOut threw, but continuing cleanup:", err);
+      }
+      console.log("[Diagnostic] supabase.auth.signOut RESOLVED");
+
+    } finally {
+      setIsAuthTransitioning(false);
+      // Run IndexedDB clear asynchronously as background cleanup
+      db.clearAllUserData().catch(err => console.error("Error clearing DB during signout:", err));
     }
-    console.log("[Diagnostic] supabase.auth.signOut RESOLVED");
-
-    // Standard cleanup without hard reload
-    await db.clearAllUserData();
-
-    // Reset Zustand store to empty initial state
-    useQuizSessionStore.getState().resetStore();
-
-    // Also remove Zustand persist cache
-    const keysToRemove = [
-      'mindflow-social-mode',
-      'mindflow_analytics',
-      'mindflow_idiom_session',
-      'mindflow_ows_session',
-      'mindflow_synonym_session',
-      'mindflow_sync_queue',
-      'mindflow_bookmarks',
-      'mindflow_flashcard_filters',
-      'mindflow_is_signup'
-    ];
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    window.dispatchEvent(new Event('mindflow-sync-complete'));
     console.log("[Diagnostic] signOut END completely");
   };
 
@@ -325,6 +357,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Reset Zustand store to empty initial state
     useQuizSessionStore.getState().resetStore();
+    import('../../quiz/stores/useAnalyticsStore').then(m => m.useAnalyticsStore.getState().resetAnalytics());
+    import('../../quiz/stores/useFlashcardStore').then(m => m.useFlashcardStore.getState().resetSession());
+    import('../../quiz/stores/useSyncStore').then(m => m.useSyncStore.getState().resetStore());
+    import('../../quiz/stores/useBookmarkStore').then(m => m.useBookmarkStore.getState().resetStore());
+    import('../../community/stores/useSocialStore').then(m => m.useSocialStore.getState().resetStore());
+    import('../../vocab/stores/useDeckSessionStore').then(m => m.useDeckSessionStore.getState().resetStore());
+    queryClient.clear();
+    import('../../quiz/stores/useAnalyticsStore').then(m => m.useAnalyticsStore.getState().resetAnalytics());
+    import('../../quiz/stores/useFlashcardStore').then(m => m.useFlashcardStore.getState().resetSession());
+    import('../../quiz/stores/useSyncStore').then(m => m.useSyncStore.getState().resetStore());
+    import('../../quiz/stores/useBookmarkStore').then(m => m.useBookmarkStore.getState().resetStore());
+    import('../../community/stores/useSocialStore').then(m => m.useSocialStore.getState().resetStore());
+    import('../../vocab/stores/useDeckSessionStore').then(m => m.useDeckSessionStore.getState().resetStore());
+    queryClient.clear();
 
     // 2. Wipe specific localStorage items used by Zustand and manual flags
     const keysToRemove = [
@@ -420,6 +466,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session,
     user,
     loading,
+    isAuthTransitioning,
     signOut,
     refreshUser,
   };

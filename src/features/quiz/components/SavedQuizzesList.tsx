@@ -12,6 +12,7 @@ import { SynapticLoader } from '../../../components/ui/SynapticLoader';
 import { motion } from 'framer-motion';
 import { QuizLibraryToolbar } from './QuizLibraryToolbar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../auth/context/AuthContext';
 import { ErrorState, QueryStateHandler } from '../../../components/ui/ErrorState';
 
 /**
@@ -36,8 +37,10 @@ interface SavedQuizzesListProps {
 export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, setViewMode, sortMethod, setSortMethod }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { user, isAuthTransitioning } = useAuth();
     const { data: quizzes = [], isLoading: loading, isError, error, refetch } = useQuery({
-        queryKey: ['saved-quizzes'],
+        queryKey: ['saved-quizzes', user?.id],
+        enabled: !!user && !isAuthTransitioning,
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user) return [];
@@ -96,7 +99,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+        queryClient.invalidateQueries({ queryKey: ['saved-quizzes', user?.id] });
 
         const handleSyncStart = () => {
             setIsSyncing(true);
@@ -106,7 +109,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             // Add a small delay to ensure IndexedDB transactions are fully committed
             // before we try to read the hydrated data.
             setTimeout(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['saved-quizzes'] });
+                await queryClient.invalidateQueries({ queryKey: ['saved-quizzes', user?.id] });
                 setIsSyncing(false);
             }, 100);
         };
@@ -153,7 +156,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
             try {
                 const { error } = await supabase.from('saved_quizzes').update({ deleted_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
-                queryClient.setQueryData(['saved-quizzes'], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
+                queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.filter(q => q.id !== id));
             } catch (error) {
                 console.error("Failed to delete quiz:", error);
                 alert("Failed to delete quiz");
@@ -174,7 +177,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         if (editingId && editName.trim()) {
             try {
                 await db.updateQuizName(editingId, editName.trim());
-                queryClient.setQueryData(['saved-quizzes'], (old: SavedQuiz[] = []) => old.map(q => q.id === editingId ? { ...q, name: editName.trim() } : q));
+                queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.map(q => q.id === editingId ? { ...q, name: editName.trim() } : q));
                 setEditingId(null);
             } catch (error) {
                 console.error("Failed to update quiz name:", error);
@@ -188,7 +191,7 @@ export const SavedQuizzesList: React.FC<SavedQuizzesListProps> = ({ viewMode, se
         try {
             const { error } = await supabase.from('saved_quizzes').update({ name: newName }).eq('id', id);
             if (error) throw error;
-            queryClient.setQueryData(['saved-quizzes'], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
+            queryClient.setQueryData(['saved-quizzes', user?.id], (old: SavedQuiz[] = []) => old.map(q => q.id === id ? { ...q, name: newName } : q));
         } catch (error) {
             console.error("Failed to update quiz name:", error);
         }

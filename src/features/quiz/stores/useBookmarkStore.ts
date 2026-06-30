@@ -9,6 +9,7 @@ interface BookmarkState {
   // Actions
   toggleBookmark: (question: Question) => void;
   loadBookmarks: (bookmarks: string[]) => void;
+  resetStore: () => void;
 }
 
 export const useBookmarkStore = create<BookmarkState>((set, get) => ({
@@ -44,5 +45,7 @@ export const useBookmarkStore = create<BookmarkState>((set, get) => ({
 
   loadBookmarks: (bookmarks) => set({
     bookmarks
-  })
+  }),
+
+  resetStore: () => set({ bookmarks: [] })
 }));

@@ -130,7 +130,11 @@ export const db = {
             db.clearBookmarks(),
             db.clearSynonymInteractions(),
             db.clearOWSInteractions(),
-            db.clearIdiomInteractions()
+            db.clearIdiomInteractions(),
+            db.clearActiveSessions(),
+            db.clearHistory(),
+            db.clearSavedQuizzes(),
+            db.clearChatData()
         ]);
     },
 
@@ -373,6 +377,51 @@ export const db = {
      *
      * @returns {Promise<void>}
      */
+
+    clearActiveSessions: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(ACTIVE_SESSION_STORE, 'readwrite');
+            const store = transaction.objectStore(ACTIVE_SESSION_STORE);
+            const request = store.clear();
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    clearHistory: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(HISTORY_STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(HISTORY_STORE_NAME);
+            const request = store.clear();
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    clearSavedQuizzes: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = dbInstance.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.clear();
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    clearChatData: async (): Promise<void> => {
+        const dbInstance = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = dbInstance.transaction([CHAT_CONVERSATIONS_STORE, CHAT_MESSAGES_STORE], 'readwrite');
+            tx.objectStore(CHAT_CONVERSATIONS_STORE).clear();
+            tx.objectStore(CHAT_MESSAGES_STORE).clear();
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    },
+
     clearBookmarks: async (): Promise<void> => {
         const dbInstance = await openDB();
         return new Promise((resolve, reject) => {
