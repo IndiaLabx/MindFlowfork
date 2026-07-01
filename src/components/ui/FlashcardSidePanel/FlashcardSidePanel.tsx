@@ -1,7 +1,8 @@
 import { LearningStatus, getLearningStatusColor } from '../../../utils/learning/statusColors';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Map, ArrowDown, Loader2, ListFilter, Download, FileText, FileJson } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '../../../utils/cn';
 
 export type PanelThemeColor = 'teal' | 'amber' | 'blue';
@@ -37,8 +38,8 @@ export interface FlashcardSidePanelProps<T> {
 
   // Downloads
   isGeneratingDownload?: boolean;
-  downloadingChunkIndex?: number | null;
-  onDownloadRequest?: (chunkIndex: number, start: number, end: number) => void;
+  downloadingGroupId?: string | null;
+  onExportRequest?: (options: { format: 'pdf' | 'json'; groupId: string }) => void;
 }
 
 const themeClasses = {
@@ -108,8 +109,8 @@ export function FlashcardSidePanel<T>({
   renderItem,
   renderGroupContainer,
   isGeneratingDownload = false,
-  downloadingChunkIndex = null,
-  onDownloadRequest,
+  downloadingGroupId = null,
+  onExportRequest,
 }: FlashcardSidePanelProps<T>) {
   const [openGroups, setOpenGroups] = useState<Set<number>>(new Set());
 
@@ -163,11 +164,12 @@ export function FlashcardSidePanel<T>({
     });
   };
 
-  const handleDownloadClick = (e: React.MouseEvent, chunkIndex: number, start: number, end: number) => {
+  const handleExportRequest = (e: Event, format: 'pdf' | 'json', groupId: string) => {
+    e.preventDefault();
     e.stopPropagation();
     if (isGeneratingDownload) return;
-    if (onDownloadRequest) {
-      onDownloadRequest(chunkIndex, start, end);
+    if (onExportRequest) {
+      onExportRequest({ format, groupId });
     }
   };
 
@@ -238,7 +240,8 @@ export function FlashcardSidePanel<T>({
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, data.length);
             const isOpen = openGroups.has(chunkIndex);
-            const isDownloading = downloadingChunkIndex === chunkIndex;
+            const groupId = `${chunkIndex}-${start}-${end}`;
+            const isDownloading = downloadingGroupId === groupId;
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
             return (
@@ -255,19 +258,45 @@ export function FlashcardSidePanel<T>({
                 >
                   <span>Words {start + 1} - {end}</span>
                   <div className="flex items-center gap-2">
-                     {onDownloadRequest && (
-                       <button
-                          onClick={(e) => handleDownloadClick(e, chunkIndex, start, end)}
-                          disabled={isGeneratingDownload}
-                          className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-current transition-colors disabled:opacity-50"
-                          title="Download Flashcards"
-                       >
-                          {isDownloading ? (
-                             <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                             <ArrowDown className="w-4 h-4" />
-                          )}
-                       </button>
+                     {onExportRequest && (
+                       <DropdownMenu.Root>
+                         <DropdownMenu.Trigger asChild>
+                           <button
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={isGeneratingDownload}
+                              className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-current transition-colors disabled:opacity-50"
+                              title="Export Flashcards"
+                           >
+                              {isDownloading ? (
+                                 <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                 <Download className="w-4 h-4" />
+                              )}
+                           </button>
+                         </DropdownMenu.Trigger>
+                         <DropdownMenu.Portal>
+                           <DropdownMenu.Content
+                             className="z-[80] min-w-[160px] bg-white dark:bg-gray-800 rounded-md shadow-lg p-1 border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in duration-200"
+                             sideOffset={5}
+                             align="end"
+                           >
+                             <DropdownMenu.Item
+                               onSelect={(e) => handleExportRequest(e, 'pdf', groupId)}
+                               className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer outline-none transition-colors"
+                             >
+                               <FileText className="w-4 h-4" />
+                               <span>Export PDF</span>
+                             </DropdownMenu.Item>
+                             <DropdownMenu.Item
+                               onSelect={(e) => handleExportRequest(e, 'json', groupId)}
+                               className="flex items-center gap-2 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer outline-none transition-colors"
+                             >
+                               <FileJson className="w-4 h-4" />
+                               <span>Export JSON</span>
+                             </DropdownMenu.Item>
+                           </DropdownMenu.Content>
+                         </DropdownMenu.Portal>
+                       </DropdownMenu.Root>
                      )}
                     {isOpen ? <ChevronDown className={cn("w-4 h-4", theme.chevronOpen)} /> : <ChevronRight className="w-4 h-4 text-gray-400 dark:text-slate-500" />}
                   </div>

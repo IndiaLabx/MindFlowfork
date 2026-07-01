@@ -36,6 +36,8 @@ const OWS_SORT_OPTIONS = [
   { value: 'surprise', label: 'Surprise (Random)' }
 ];
 
+import { useState } from 'react';
+
 export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
@@ -53,17 +55,34 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<OneWord>();
 
-  const handleDownloadPDF = async (start: number, end: number, chunkIndex: number) => {
-    const chunkData = data.slice(start, end);
-    const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
-    return await generatePDF(chunkData, { fileName });
+  const [downloadingGroupId, setDownloadingGroupId] = useState<string | null>(null);
+
+    const handleExportRequest = async (options: { format: 'pdf' | 'json'; groupId: string }) => {
+    const { format, groupId } = options;
+    const parts = groupId.split('-');
+    if (parts.length !== 3) return;
+
+    const chunkIndex = parseInt(parts[0], 10);
+    const start = parseInt(parts[1], 10);
+    const end = parseInt(parts[2], 10);
+
+    setDownloadingGroupId(groupId);
+
+    try {
+      const chunkData = data.slice(start, end);
+      if (format === 'pdf') {
+        const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
+        await generatePDF(chunkData, { fileName });
+      } else if (format === 'json') {
+        const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
+        await downloadJSON(chunkData, fileName);
+      }
+    } finally {
+      setDownloadingGroupId(null);
+    }
   };
 
-  const handleDownloadJSON = async (start: number, end: number, chunkIndex: number) => {
-    const chunkData = data.slice(start, end);
-    const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
-    return await downloadJSON(chunkData, fileName);
-  };
+
 
   return (
     <FlashcardSidePanel<OneWord>
@@ -80,6 +99,9 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       onSortOrderChange={setSortOrder}
       sortOptions={OWS_SORT_OPTIONS}
       getLearningStatus={getLearningStatus}
+      isGeneratingDownload={isGeneratingPDF || isGeneratingJSON || downloadingGroupId !== null}
+      downloadingGroupId={downloadingGroupId}
+      onExportRequest={handleExportRequest}
       renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo, learningStatus, statusColor = "bg-gray-300 dark:bg-gray-600") => {
 
         return (

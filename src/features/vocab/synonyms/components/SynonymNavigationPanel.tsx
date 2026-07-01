@@ -34,6 +34,8 @@ const SYNONYM_SORT_OPTIONS = [
   { value: 'surprise', label: 'Surprise (Random)' }
 ];
 
+import { useState } from 'react';
+
 export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
   isOpen, onClose, data, currentIndex, onJump
 }) => {
@@ -53,17 +55,34 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateSynonymPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<any>();
 
-  const handleDownloadPDF = async (start: number, end: number, chunkIndex: number) => {
-    const chunkData = data.slice(start, end);
-    const fileName = `Synonyms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
-    return await generatePDF(chunkData, { fileName });
+  const [downloadingGroupId, setDownloadingGroupId] = useState<string | null>(null);
+
+    const handleExportRequest = async (options: { format: 'pdf' | 'json'; groupId: string }) => {
+    const { format, groupId } = options;
+    const parts = groupId.split('-');
+    if (parts.length !== 3) return;
+
+    const chunkIndex = parseInt(parts[0], 10);
+    const start = parseInt(parts[1], 10);
+    const end = parseInt(parts[2], 10);
+
+    setDownloadingGroupId(groupId);
+
+    try {
+      const chunkData = data.slice(start, end);
+      if (format === 'pdf') {
+        const fileName = `Synonyms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
+        await generatePDF(chunkData, { fileName });
+      } else if (format === 'json') {
+        const fileName = `Synonyms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
+        await downloadJSON(chunkData, fileName);
+      }
+    } finally {
+      setDownloadingGroupId(null);
+    }
   };
 
-  const handleDownloadJSON = async (start: number, end: number, chunkIndex: number) => {
-    const chunkData = data.slice(start, end);
-    const fileName = `Synonyms_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
-    return await downloadJSON(chunkData, fileName);
-  };
+
 
   return (
     <FlashcardSidePanel<any>
@@ -80,6 +99,9 @@ export const SynonymNavigationPanel: React.FC<SynonymNavigationPanelProps> = ({
       onSortOrderChange={setSortOrder}
       sortOptions={SYNONYM_SORT_OPTIONS}
       getLearningStatus={getLearningStatus}
+      isGeneratingDownload={isGeneratingPDF || isGeneratingJSON || downloadingGroupId !== null}
+      downloadingGroupId={downloadingGroupId}
+      onExportRequest={handleExportRequest}
       renderGroupContainer={(children) => (
         <div className="p-3 grid grid-cols-5 gap-2 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 animate-in slide-in-from-top-2 fade-in duration-200">
           {children}
