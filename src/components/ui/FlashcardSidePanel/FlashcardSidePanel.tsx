@@ -247,7 +247,7 @@ export function FlashcardSidePanel<T>({
           {Array.from({ length: totalChunks }).map((_, chunkIndex) => {
             const start = chunkIndex * chunkSize;
             const end = Math.min(start + chunkSize, data.length);
-            const isGroupOpen = openGroups.has(chunkIndex);
+            const isOpen = openGroups.has(chunkIndex);
             const isDownloading = downloadingChunkIndex === chunkIndex;
             const containsCurrent = currentIndex >= start && currentIndex < end;
 
@@ -301,11 +301,11 @@ export function FlashcardSidePanel<T>({
                          </button>
                        </div>
                      )}
-                    {isGroupOpen ? <ChevronDown className={cn("w-4 h-4", theme.chevronOpen)} /> : <ChevronRight className="w-4 h-4 text-gray-400 dark:text-slate-500" />}
+                    {isOpen ? <ChevronDown className={cn("w-4 h-4", theme.chevronOpen)} /> : <ChevronRight className="w-4 h-4 text-gray-400 dark:text-slate-500" />}
                   </div>
                 </div>
 
-                {isGroupOpen && (
+                {isOpen && (
                   renderGroupContainer ? renderGroupContainer(
                     data.slice(start, end).map((item, localIdx) => {
                       const status = getLearningStatus ? getLearningStatus(item) : undefined;
