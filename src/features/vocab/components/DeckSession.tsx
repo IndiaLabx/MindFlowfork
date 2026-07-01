@@ -23,6 +23,7 @@ export const DeckSession: React.FC = () => {
     const handleExit = async () => {
         if (deckId && vocabType) {
             await deckService.updateDeckState(vocabType, deckId, state, 'paused');
+            // We return to library directly since the user likely originated from it or the hub
             navigate(`/vocab/${vocabType}/library`);
         }
     };

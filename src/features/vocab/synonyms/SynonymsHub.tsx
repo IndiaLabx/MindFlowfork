@@ -17,7 +17,7 @@ import {
 } from './components/SynonymsSVGs';
 
 interface SynonymsHubProps {
-    onBack: () => void;
+    onBack?: () => void;
     onStart: (data: SynonymWord[], filters: any, mode?: 'basic' | 'review') => void;
 }
 
@@ -77,12 +77,7 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                  <div className="text-6xl mb-4" role="img" aria-hidden="true">⚠️</div>
                  <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-200">Failed to load vocabulary</h2>
                  <p className="text-slate-600 dark:text-slate-400 mb-6 text-center max-w-md">There was a problem loading the synonym data. Please check your connection and try again.</p>
-                 <button
-                    onClick={onBack}
-                    className="px-6 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-xl transition-colors font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-                >
-                    Go Back
-                </button>
+
             </div>
         )
     }
@@ -93,28 +88,17 @@ export const SynonymsHub: React.FC<SynonymsHubProps> = ({ onBack, onStart }) => 
                  <div className="text-6xl mb-4" role="img" aria-hidden="true">📭</div>
                  <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-200">No Vocabulary Available</h2>
                  <p className="text-slate-600 dark:text-slate-400 mb-6 text-center max-w-md">We couldn't find any words for you to learn at the moment. Please try again later.</p>
-                 <button
-                    onClick={onBack}
-                    className="px-6 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-xl transition-colors font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-                >
-                    Go Back
-                </button>
+
             </div>
         )
     }
 
 
     return (
-        <div className="flex flex-col min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 transition-colors duration-700 relative overflow-hidden bg-slate-50 dark:bg-slate-900">
+        <div className="flex flex-col h-full p-2 sm:p-4 transition-colors duration-700 relative overflow-hidden bg-slate-50 dark:bg-slate-900">
             <div className="flex-1 flex flex-col space-y-6 py-4 relative z-10 animate-fade-in w-full">
 
-                <button
-                    onClick={onBack}
-                    className="self-start mb-4 z-20 flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all shadow-sm backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
-                    title="Go Back"
-                 aria-label="Go back">
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
+
 
                 {/* Header / Hero Section */}
                 <div className="relative text-left w-full mt-2">

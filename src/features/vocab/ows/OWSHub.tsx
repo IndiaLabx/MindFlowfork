@@ -10,7 +10,7 @@ import { SavedQuizzesSVG } from '../../../features/quiz/components/DashboardSVGs
 import { ChevronRight } from 'lucide-react';
 
 interface OWSHubProps {
-    onBack: () => void;
+    onBack?: () => void;
 }
 
 export const OWSHub: React.FC<OWSHubProps> = ({ onBack }) => {
@@ -21,17 +21,15 @@ export const OWSHub: React.FC<OWSHubProps> = ({ onBack }) => {
     const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden relative p-2 sm:p-4">
             {/* Background elements (similar to SynonymsHub) */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="relative z-10 flex flex-col h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {/* Header */}
                 <header className="flex flex-col gap-6 mb-8 pt-4">
-                    <button onClick={onBack} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors font-semibold uppercase tracking-widest text-xs w-fit">
-                        <ArrowLeft className="w-4 h-4 mr-2" /> Back
-                    </button>
+
 
                     <div>
                         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight drop-shadow-sm">

@@ -146,7 +146,7 @@ export const VocabResult: React.FC<VocabResultProps> = ({ vocabType }) => {
                         <Home className="w-5 h-5" /> Back to Library
                     </button>
                     <button
-                        onClick={() => navigate(`/vocab/${vocabType}`)}
+                        onClick={() => navigate(`/english?tab=${vocabType === 'idiom' ? 'vocabidiom' : vocabType === 'ows' ? 'vocabows' : 'vocabsynonyms'}`)}
                         className="flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/30"
                     >
                         Continue Learning <ArrowRight className="w-5 h-5" />
