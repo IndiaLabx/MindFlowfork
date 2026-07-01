@@ -74,10 +74,26 @@ export const IdiomNavigationPanel: React.FC<IdiomNavigationPanelProps> = ({
       const chunkData = idioms.slice(start, end);
       if (format === 'pdf') {
         const fileName = `Idiom_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
-        await generatePDF(chunkData, { fileName });
+        const result = await generatePDF(chunkData, { fileName });
+        if (result) {
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.download = result.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       } else if (format === 'json') {
         const fileName = `Idiom_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
-        await downloadJSON(chunkData, fileName);
+        const result = await downloadJSON(chunkData, fileName);
+        if (result) {
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.download = result.fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       }
     } finally {
       setDownloadingGroupId(null);

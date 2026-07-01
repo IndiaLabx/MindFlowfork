@@ -276,6 +276,8 @@ export function FlashcardSidePanel<T>({
                          </DropdownMenu.Trigger>
                          <DropdownMenu.Portal>
                            <DropdownMenu.Content
+                             onClick={(e) => e.stopPropagation()}
+                             onPointerDown={(e) => e.stopPropagation()}
                              className="z-[80] min-w-[160px] bg-white dark:bg-gray-800 rounded-md shadow-lg p-1 border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in duration-200"
                              sideOffset={5}
                              align="end"
