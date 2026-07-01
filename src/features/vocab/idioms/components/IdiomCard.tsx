@@ -340,7 +340,7 @@ export const IdiomCard: React.FC<IdiomCardProps> = ({ idiom: initialIdiom, seria
         cardData={idiom}
       />
     </div>
-  );
+  
       <style>{`
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
