@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useAdminEditVocab } from '../../vocab/hooks/useAdminEditVocab';
+import { MutationErrorBanner } from './MutationErrorBanner';
 
 type VocabType = 'idiom' | 'ows' | 'synonym';
 
@@ -21,7 +22,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [initialData, setInitialData] = useState<Record<string, any>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const { mutate: editVocab, isPending } = useAdminEditVocab();
+  const { mutate: editVocab, isPending, error: mutationError, reset: resetMutation } = useAdminEditVocab();
 
   useEffect(() => {
     if (isOpen && cardData) {
@@ -110,6 +111,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
     if (hasUnsavedChanges() && !window.confirm("You have unsaved changes. Are you sure you want to discard them?")) {
       return;
     }
+    resetMutation();
     onClose();
   };
 
@@ -121,6 +123,7 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
   };
 
   const handleSave = () => {
+    resetMutation();
     const updates: Record<string, any> = { ...formData };
 
     // Format specific fields back to proper types
@@ -230,6 +233,14 @@ export const AdminEditVocabModal: React.FC<AdminEditVocabModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+
+        {/* Error Banner */}
+        {mutationError && (
+          <div className="px-4 sm:px-6 pt-4">
+            <MutationErrorBanner error={mutationError as any} onRetry={handleSave} />
+          </div>
+        )}
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin">
