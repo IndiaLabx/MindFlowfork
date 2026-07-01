@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { OneWord } from '../../../../types/models';
 import { useFlashcardStore, SortOrder } from '../../../../features/quiz/stores/useFlashcardStore';
 import { useOWSProgress } from '../hooks/useOWSProgress';
@@ -53,16 +53,24 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
   const { generatePDF, isGenerating: isGeneratingPDF, error: pdfError } = usePDFGenerator(() => import('../utils/pdfGenerator').then(m => m.generateOWSPDF as any));
   const { downloadJSON, isGenerating: isGeneratingJSON, error: jsonError } = useJSONDownloader<OneWord>();
 
-  const handleDownloadPDF = async (start: number, end: number, chunkIndex: number) => {
-    const chunkData = data.slice(start, end);
-    const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
-    return await generatePDF(chunkData, { fileName });
-  };
+  const [downloadingChunkIndex, setDownloadingChunkIndex] = useState<number | null>(null);
 
-  const handleDownloadJSON = async (start: number, end: number, chunkIndex: number) => {
+  const handleDownloadRequest = async (payload: { chunkIndex: number, start: number, end: number, format: 'pdf' | 'json' }) => {
+    const { chunkIndex, start, end, format } = payload;
+    setDownloadingChunkIndex(chunkIndex);
     const chunkData = data.slice(start, end);
-    const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
-    return await downloadJSON(chunkData, fileName);
+
+    try {
+      if (format === 'pdf') {
+        const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).pdf`;
+        await generatePDF(chunkData, { fileName });
+      } else {
+        const fileName = `OWS_Flashcards_Part_${chunkIndex + 1}_(${start + 1}-${end}).json`;
+        await downloadJSON(chunkData, fileName);
+      }
+    } finally {
+      setDownloadingChunkIndex(null);
+    }
   };
 
   return (
@@ -80,6 +88,9 @@ export const OWSNavigationPanel: React.FC<OWSNavigationPanelProps> = ({
       onSortOrderChange={setSortOrder}
       sortOptions={OWS_SORT_OPTIONS}
       getLearningStatus={getLearningStatus}
+      isGeneratingDownload={isGeneratingPDF || isGeneratingJSON}
+      downloadingChunkIndex={downloadingChunkIndex}
+      onDownloadRequest={handleDownloadRequest}
       renderItem={(item, globalIdx, isCurrent, closePanel, jumpTo, learningStatus, statusColor = "bg-gray-300 dark:bg-gray-600") => {
 
         return (
