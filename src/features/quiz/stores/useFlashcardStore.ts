@@ -18,6 +18,7 @@ interface FlashcardState {
   // Common state
   status: 'idle' | 'active' | 'complete';
   type: FlashcardType;
+  currentCardId: string | null;
   currentIndex: number;
   filters: InitialFilters | null;
   mode?: 'basic' | 'review';
@@ -54,6 +55,14 @@ const defaultSwipeStats: SwipeStats = { mastered: 0, tricky: 0, review: 0, cluel
 
 
 
+
+function getAllowedSortOrders(type: FlashcardType): SortOrder[] {
+  const base: SortOrder[] = ['default', 'alphabetical_asc', 'alphabetical_desc', 'difficulty_asc', 'difficulty_desc', 'exam_year_desc', 'exam_year_asc', 'surprise'];
+  if (type === 'ows') return [...base, 'importance_desc', 'importance_asc', 'repetition_desc', 'repetition_asc'];
+  if (type === 'synonyms') return [...base, 'frequency_desc', 'frequency_asc', 'trending_desc', 'trending_asc', 'last_asked_desc', 'last_asked_asc'];
+  return base;
+}
+
 function generateShuffledIds(cards: { id: string }[]): string[] {
   return shuffleArray(cards.map(c => c.id));
 }
@@ -73,7 +82,7 @@ const difficultyMap: Record<string, number> = {
   'Hard': 3
 };
 
-function sortFlashcards<T extends Idiom | OneWord | SynonymWord>(cards: T[], sortOrder: SortOrder, surpriseIds: string[] = []): T[] {
+function sortFlashcards<T extends Idiom | OneWord | SynonymWord>(cards: T[], sortOrder: SortOrder, type: FlashcardType, surpriseIds: string[] = []): T[] {
   if (sortOrder === 'surprise') {
     if (surpriseIds.length > 0) {
       const idMap = new Map();
@@ -86,100 +95,84 @@ function sortFlashcards<T extends Idiom | OneWord | SynonymWord>(cards: T[], sor
     return [...cards];
   }
 
-  return [...cards].sort((a, b) => {
-    // Alphabetical
-    if (sortOrder === 'alphabetical_asc') {
-      const textA = ('word' in a) ? (a as any).word : ('content' in a && 'word' in (a as any).content ? (a as any).content.word : ('content' in a && 'phrase' in (a as any).content ? (a as any).content.phrase : ''));
-      const textB = ('word' in b) ? (b as any).word : ('content' in b && 'word' in (b as any).content ? (b as any).content.word : ('content' in b && 'phrase' in (b as any).content ? (b as any).content.phrase : ''));
-      return String(textA).localeCompare(String(textB));
-    }
-    if (sortOrder === 'alphabetical_desc') {
-      const textA = ('word' in a) ? (a as any).word : ('content' in a && 'word' in (a as any).content ? (a as any).content.word : ('content' in a && 'phrase' in (a as any).content ? (a as any).content.phrase : ''));
-      const textB = ('word' in b) ? (b as any).word : ('content' in b && 'word' in (b as any).content ? (b as any).content.word : ('content' in b && 'phrase' in (b as any).content ? (b as any).content.phrase : ''));
-      return String(textB).localeCompare(String(textA));
-    }
+  if (cards.length === 0) return [...cards];
+  
+  switch (type) {
+    case 'idioms':
+      return sortIdioms(cards as any[], sortOrder) as unknown as T[];
+    case 'ows':
+      return sortOWS(cards as any[], sortOrder) as unknown as T[];
+    case 'synonyms':
+      return sortSynonyms(cards as any[], sortOrder) as unknown as T[];
+    default:
+      return [...cards];
+  }
+}
 
-    // Difficulty
+function sortIdioms(cards: Idiom[], sortOrder: SortOrder): Idiom[] {
+  return [...cards].sort((a, b) => {
+    if (sortOrder === 'alphabetical_asc') return String(a.content.phrase).localeCompare(String(b.content.phrase));
+    if (sortOrder === 'alphabetical_desc') return String(b.content.phrase).localeCompare(String(a.content.phrase));
+    
     if (sortOrder === 'difficulty_asc') {
-      const diffA = difficultyMap[((a as any).properties as any)?.difficulty || (a as any).difficulty || 'Medium'] || 2;
-      const diffB = difficultyMap[((b as any).properties as any)?.difficulty || (b as any).difficulty || 'Medium'] || 2;
-      return diffA - diffB;
+      return (difficultyMap[a.properties.difficulty || 'Medium'] || 2) - (difficultyMap[b.properties.difficulty || 'Medium'] || 2);
     }
     if (sortOrder === 'difficulty_desc') {
-      const diffA = difficultyMap[((a as any).properties as any)?.difficulty || (a as any).difficulty || 'Medium'] || 2;
-      const diffB = difficultyMap[((b as any).properties as any)?.difficulty || (b as any).difficulty || 'Medium'] || 2;
-      return diffB - diffA;
+      return (difficultyMap[b.properties.difficulty || 'Medium'] || 2) - (difficultyMap[a.properties.difficulty || 'Medium'] || 2);
     }
+    
+    if (sortOrder === 'exam_year_desc') return (b.sourceInfo.examYear || 0) - (a.sourceInfo.examYear || 0);
+    if (sortOrder === 'exam_year_asc') return (a.sourceInfo.examYear || 0) - (b.sourceInfo.examYear || 0);
+    
+    return 0;
+  });
+}
 
-    // OWS Specific (Importance & Repetition) - Fallback to 0 if not present
-    if (sortOrder === 'importance_desc') {
-       const impA = ((a as any).properties as any)?.importance_score || (a as any).importance_score || 0;
-       const impB = ((b as any).properties as any)?.importance_score || (b as any).importance_score || 0;
-       return impB - impA;
+function sortOWS(cards: OneWord[], sortOrder: SortOrder): OneWord[] {
+  return [...cards].sort((a, b) => {
+    if (sortOrder === 'alphabetical_asc') return String(a.content.word).localeCompare(String(b.content.word));
+    if (sortOrder === 'alphabetical_desc') return String(b.content.word).localeCompare(String(a.content.word));
+    
+    if (sortOrder === 'difficulty_asc') {
+      return (difficultyMap[a.properties.difficulty || 'Medium'] || 2) - (difficultyMap[b.properties.difficulty || 'Medium'] || 2);
     }
-    if (sortOrder === 'importance_asc') {
-       const impA = ((a as any).properties as any)?.importance_score || (a as any).importance_score || 0;
-       const impB = ((b as any).properties as any)?.importance_score || (b as any).importance_score || 0;
-       return impA - impB;
+    if (sortOrder === 'difficulty_desc') {
+      return (difficultyMap[b.properties.difficulty || 'Medium'] || 2) - (difficultyMap[a.properties.difficulty || 'Medium'] || 2);
     }
-    if (sortOrder === 'repetition_desc') {
-       const repA = ((a as any).properties as any)?.repetition_count || (a as any).repetition_count || 0;
-       const repB = ((b as any).properties as any)?.repetition_count || (b as any).repetition_count || 0;
-       return repB - repA;
-    }
-    if (sortOrder === 'repetition_asc') {
-       const repA = ((a as any).properties as any)?.repetition_count || (a as any).repetition_count || 0;
-       const repB = ((b as any).properties as any)?.repetition_count || (b as any).repetition_count || 0;
-       return repA - repB;
-    }
+    
+    if (sortOrder === 'importance_desc') return (b.properties.importance_score || 0) - (a.properties.importance_score || 0);
+    if (sortOrder === 'importance_asc') return (a.properties.importance_score || 0) - (b.properties.importance_score || 0);
+    
+    if (sortOrder === 'repetition_desc') return (b.properties.repetition_count || 0) - (a.properties.repetition_count || 0);
+    if (sortOrder === 'repetition_asc') return (a.properties.repetition_count || 0) - (b.properties.repetition_count || 0);
+    
+    if (sortOrder === 'exam_year_desc') return (b.sourceInfo.examYear || 0) - (a.sourceInfo.examYear || 0);
+    if (sortOrder === 'exam_year_asc') return (a.sourceInfo.examYear || 0) - (b.sourceInfo.examYear || 0);
+    
+    if (sortOrder === 'last_asked_desc') return ((b.properties as any).last_asked_year || 0) - ((a.properties as any).last_asked_year || 0);
+    if (sortOrder === 'last_asked_asc') return ((a.properties as any).last_asked_year || 0) - ((b.properties as any).last_asked_year || 0);
+    
+    return 0;
+  });
+}
 
-
-    // Recency (Exam Year)
-    if (sortOrder === 'exam_year_desc') {
-      const yearA = ((a as any).sourceInfo as any)?.examYear || (a as any).examYear || 0;
-      const yearB = ((b as any).sourceInfo as any)?.examYear || (b as any).examYear || 0;
-      return yearB - yearA;
-    }
-    if (sortOrder === 'exam_year_asc') {
-      const yearA = ((a as any).sourceInfo as any)?.examYear || (a as any).examYear || 0;
-      const yearB = ((b as any).sourceInfo as any)?.examYear || (b as any).examYear || 0;
-      return yearA - yearB;
-    }
-
-    // Last Asked
-    if (sortOrder === 'last_asked_desc') {
-      const yearA = ((a as any).properties as any)?.last_asked_year || 0;
-      const yearB = ((b as any).properties as any)?.last_asked_year || 0;
-      return yearB - yearA;
-    }
-    if (sortOrder === 'last_asked_asc') {
-      const yearA = ((a as any).properties as any)?.last_asked_year || 0;
-      const yearB = ((b as any).properties as any)?.last_asked_year || 0;
-      return yearA - yearB;
-    }
-
-    // Synonyms Specific (Frequency & Trending)
-    if (sortOrder === 'frequency_desc') {
-       const freqA = (a as any).lifetime_frequency || 0;
-       const freqB = (b as any).lifetime_frequency || 0;
-       return freqB - freqA;
-    }
-    if (sortOrder === 'frequency_asc') {
-       const freqA = (a as any).lifetime_frequency || 0;
-       const freqB = (b as any).lifetime_frequency || 0;
-       return freqA - freqB;
-    }
-    if (sortOrder === 'trending_desc') {
-       const trendA = (a as any).recent_trend || 0;
-       const trendB = (b as any).recent_trend || 0;
-       return trendB - trendA;
-    }
-    if (sortOrder === 'trending_asc') {
-       const trendA = (a as any).recent_trend || 0;
-       const trendB = (b as any).recent_trend || 0;
-       return trendA - trendB;
-    }
-
+function sortSynonyms(cards: SynonymWord[], sortOrder: SortOrder): SynonymWord[] {
+  return [...cards].sort((a, b) => {
+    if (sortOrder === 'alphabetical_asc') return String(a.word).localeCompare(String(b.word));
+    if (sortOrder === 'alphabetical_desc') return String(b.word).localeCompare(String(a.word));
+    
+    if (sortOrder === 'difficulty_asc') return (difficultyMap[(a as any).difficulty || 'Medium'] || 2) - (difficultyMap[(b as any).difficulty || 'Medium'] || 2);
+    if (sortOrder === 'difficulty_desc') return (difficultyMap[(b as any).difficulty || 'Medium'] || 2) - (difficultyMap[(a as any).difficulty || 'Medium'] || 2);
+    
+    if (sortOrder === 'frequency_desc') return (b.lifetime_frequency || 0) - (a.lifetime_frequency || 0);
+    if (sortOrder === 'frequency_asc') return (a.lifetime_frequency || 0) - (b.lifetime_frequency || 0);
+    
+    if (sortOrder === 'trending_desc') return (b.recent_trend || 0) - (a.recent_trend || 0);
+    if (sortOrder === 'trending_asc') return (a.recent_trend || 0) - (b.recent_trend || 0);
+    
+    if (sortOrder === 'exam_year_desc') return ((b as any).examYear || 0) - ((a as any).examYear || 0);
+    if (sortOrder === 'exam_year_asc') return ((a as any).examYear || 0) - ((b as any).examYear || 0);
+    
     return 0;
   });
 }
@@ -187,8 +180,9 @@ function sortFlashcards<T extends Idiom | OneWord | SynonymWord>(cards: T[], sor
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   status: 'idle',
   type: null,
-  currentIndex: 0,
-  filters: null,
+  currentCardId: null,
+    currentIndex: 0,
+    filters: null,
   currentSortOrder: 'default',
   swipeStats: { ...defaultSwipeStats },
   idioms: [],
@@ -198,8 +192,10 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   startIdioms: (data, filters, mode = 'review') => set((state) => {
     const surpriseIds = generateShuffledIds(data);
-    const initialSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
-    const sortedData = sortFlashcards(data, initialSort);
+    const savedSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
+    const allowedSorts = getAllowedSortOrders('idioms');
+    const initialSort = allowedSorts.includes(savedSort) ? savedSort : 'default';
+    const sortedData = sortFlashcards(data, initialSort, 'idioms', surpriseIds);
     return {
 
     status: 'active',
@@ -210,14 +206,17 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     filters: filters || null,
     mode,
     swipeStats: { ...defaultSwipeStats },
-    currentIndex: 0
+    currentIndex: 0,
+    currentCardId: sortedData.length > 0 ? sortedData[0].id : null
     }
   }),
 
   startOWS: (data, filters, mode = 'review') => set((state) => {
     const surpriseIds = generateShuffledIds(data);
-    const initialSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
-    const sortedData = sortFlashcards(data, initialSort);
+    const savedSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
+    const allowedSorts = getAllowedSortOrders('ows');
+    const initialSort = allowedSorts.includes(savedSort) ? savedSort : 'default';
+    const sortedData = sortFlashcards(data, initialSort, 'idioms', surpriseIds);
     return {
 
     status: 'active',
@@ -228,14 +227,17 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     filters: filters || null,
     mode,
     swipeStats: { ...defaultSwipeStats },
-    currentIndex: 0
+    currentIndex: 0,
+    currentCardId: sortedData.length > 0 ? sortedData[0].id : null
     }
   }),
 
   startSynonyms: (data, filters, mode) => {
     const surpriseIds = generateShuffledIds(data);
-    const initialSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
-    const sortedData = sortFlashcards(data, initialSort, surpriseIds);
+    const savedSort = localStorage.getItem('flashcard_sort_order') as SortOrder || 'default';
+    const allowedSorts = getAllowedSortOrders('synonyms');
+    const initialSort = allowedSorts.includes(savedSort) ? savedSort : 'default';
+    const sortedData = sortFlashcards(data, initialSort, 'idioms', surpriseIds);
     return set({
     currentSortOrder: initialSort,
     surpriseOrderIds: surpriseIds,
@@ -245,7 +247,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     synonyms: sortedData,
     filters: filters || null,
     swipeStats: { ...defaultSwipeStats },
-    currentIndex: 0
+    currentIndex: 0,
+    currentCardId: sortedData.length > 0 ? sortedData[0].id : null
     })
   },
 
@@ -259,15 +262,19 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     if (nextIndex >= maxIndex) {
       return state; // Stay on last card until explicitly finished
     }
-    return { currentIndex: nextIndex };
+    const list = state.type === 'idioms' ? state.idioms : (state.type === 'ows' ? state.ows : state.synonyms);
+    return { currentIndex: nextIndex, currentCardId: (list as any[])[nextIndex]?.id || null };
   }),
 
-  prevCard: () => set((state) => ({
-    currentIndex: Math.max(0, state.currentIndex - 1)
-  })),
+  prevCard: () => set((state) => {
+    const newIndex = Math.max(0, state.currentIndex - 1);
+    const list = state.type === 'idioms' ? state.idioms : (state.type === 'ows' ? state.ows : state.synonyms);
+    return { currentIndex: newIndex, currentCardId: (list as any[])[newIndex]?.id || null };
+  }),
 
-  jumpToCard: (index) => set({
-    currentIndex: index
+  jumpToCard: (index) => set((state) => {
+    const list = state.type === 'idioms' ? state.idioms : (state.type === 'ows' ? state.ows : state.synonyms);
+    return { currentIndex: index, currentCardId: (list as any[])[index]?.id || null };
   }),
 
 
@@ -383,6 +390,13 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     return state;
   }),
 
+  /**
+   * Removes a card from the current session.
+   * 
+   * Policy: If the removed card is the currently active card,
+   * the session advances to the next available card (nearest surviving card) 
+   * by maintaining the current index.
+   */
   removeCard: (id: string) => set((state) => {
     let newIdioms = state.idioms;
     let newOws = state.ows;
@@ -409,11 +423,13 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     // If list is empty, mark complete
     const newStatus = maxIndex === 0 ? 'complete' : state.status;
 
+    const list = state.type === 'idioms' ? newIdioms : (state.type === 'ows' ? newOws : newSynonyms);
     return {
       idioms: newIdioms,
       ows: newOws,
       synonyms: newSynonyms,
       currentIndex: newIndex,
+      currentCardId: (list as any[])[newIndex]?.id || null,
       status: newStatus
     };
   }),
@@ -423,42 +439,67 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   })),
 
   finishSession: () => set({
-    status: 'complete'
+    status: 'complete',
+    currentCardId: null
   }),
 
 
 
-  setSortOrder: (sortOrder, currentCardId) => set((state) => {
+  setSortOrder: (sortOrderArg, currentCardIdArg) => set((state) => {
+    let sortOrder = sortOrderArg;
+    if (state.type) {
+       const allowed = getAllowedSortOrders(state.type);
+       if (!allowed.includes(sortOrder)) {
+          console.warn(`[INVALID_SORT_FOR_DOMAIN] ${sortOrder} is not valid for ${state.type}`);
+          sortOrder = 'default';
+       }
+    }
+    let activeCardId = currentCardIdArg || state.currentCardId;
     const surpriseIds = state.surpriseOrderIds || [];
     localStorage.setItem('flashcard_sort_order', sortOrder);
 
     if (state.type === 'idioms') {
-       const sorted = sortFlashcards(state.idioms, sortOrder, surpriseIds);
+       const sorted = sortFlashcards(state.idioms, sortOrder, 'idioms', surpriseIds);
        let newIndex = state.currentIndex;
-       if (currentCardId) {
-          const foundIdx = sorted.findIndex(c => c.id === currentCardId);
-          if (foundIdx !== -1) newIndex = foundIdx;
+       if (activeCardId) {
+          const foundIdx = sorted.findIndex((c: any) => c.id === activeCardId);
+          if (foundIdx !== -1) {
+             newIndex = foundIdx;
+          } else {
+             newIndex = Math.min(newIndex, sorted.length - 1);
+             activeCardId = sorted[newIndex]?.id || null;
+          }
        }
-       return { idioms: sorted, currentSortOrder: sortOrder, currentIndex: newIndex };
+       return { idioms: sorted, currentSortOrder: sortOrder, currentIndex: newIndex, currentCardId: activeCardId };
     }
     if (state.type === 'ows') {
-       const sorted = sortFlashcards(state.ows, sortOrder, surpriseIds);
+       const sorted = sortFlashcards(state.ows, sortOrder, 'ows', surpriseIds);
        let newIndex = state.currentIndex;
-       if (currentCardId) {
-          const foundIdx = sorted.findIndex(c => c.id === currentCardId);
-          if (foundIdx !== -1) newIndex = foundIdx;
+       if (activeCardId) {
+          const foundIdx = sorted.findIndex((c: any) => c.id === activeCardId);
+          if (foundIdx !== -1) {
+             newIndex = foundIdx;
+          } else {
+             newIndex = Math.min(newIndex, sorted.length - 1);
+             activeCardId = sorted[newIndex]?.id || null;
+          }
        }
-       return { ows: sorted, currentSortOrder: sortOrder, currentIndex: newIndex };
+       return { ows: sorted, currentSortOrder: sortOrder, currentIndex: newIndex, currentCardId: activeCardId };
     }
 
     if (state.type === 'synonyms') {
-       const sorted = sortFlashcards(state.synonyms, sortOrder, surpriseIds);
+       const sorted = sortFlashcards(state.synonyms, sortOrder, 'synonyms', surpriseIds);
        let newIndex = state.currentIndex;
-       if (currentCardId) {
-          const foundIdx = sorted.findIndex(c => c.id === currentCardId);
-          if (foundIdx !== -1) newIndex = foundIdx;
+       if (activeCardId) {
+          const foundIdx = sorted.findIndex((c: any) => c.id === activeCardId);
+          if (foundIdx !== -1) {
+             newIndex = foundIdx;
+          } else {
+             newIndex = Math.min(newIndex, sorted.length - 1);
+             activeCardId = sorted[newIndex]?.id || null;
+          }
        }
-       return { synonyms: sorted, currentSortOrder: sortOrder, currentIndex: newIndex };
+       return { synonyms: sorted, currentSortOrder: sortOrder, currentIndex: newIndex, currentCardId: activeCardId };
     }
 
     return { currentSortOrder: sortOrder };
@@ -467,6 +508,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   resetSession: () => set({
     status: 'idle',
     type: null,
+    currentCardId: null,
     currentIndex: 0,
     filters: null,
     currentSortOrder: 'default',
@@ -477,3 +519,31 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     surpriseOrderIds: []
   })
 }));
+
+if (import.meta.env?.DEV) {
+  useFlashcardStore.subscribe((state) => {
+    if (state.type && state.status === 'active') {
+      const list = state.type === 'idioms' ? state.idioms : (state.type === 'ows' ? state.ows : state.synonyms);
+      const expectedId = list[state.currentIndex]?.id || null;
+      if (state.currentIndex >= list.length && list.length > 0) {
+        console.warn(
+          "[FLASHCARD_INDEX_OUT_OF_RANGE] Index exceeded length! index:",
+          state.currentIndex,
+          "length:",
+          list.length
+        );
+      }
+      
+      if (expectedId !== state.currentCardId) {
+        console.warn(
+          "[FLASHCARD_INVARIANT_BROKEN] Identity mismatch! expected:",
+          expectedId,
+          "actual:",
+          state.currentCardId,
+          "index:",
+          state.currentIndex
+        );
+      }
+    }
+  });
+}
