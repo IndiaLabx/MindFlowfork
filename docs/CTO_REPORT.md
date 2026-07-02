@@ -6,7 +6,7 @@
 ---
 
 ## 1. Project Overview
-MindFlow is a React-based Progressive Web App (PWA) designed as an adaptive learning and quiz platform. It heavily leans on local offline-first capabilities through IndexedDB and Service Workers while utilizing Supabase for a cloud backend (Auth, PostgreSQL, Storage).
+MindFlow is a React-based Progressive Web App (PWA) specially designed as an adaptive learning and quiz platform. It heavily leans on local offline-first capabilities through IndexedDB and Service Workers while utilizing Supabase for a cloud backend (Auth, PostgreSQL, Storage).
 **Tech Stack:** React 19, TypeScript, Vite, Tailwind CSS, Supabase (JS client), IndexedDB (custom wrapper), Framer Motion (animations), Google Gemini (AI tutoring features).
 **Architecture:** Feature-based modular structure (`src/features/*`), heavily dependent on complex global React contexts and giant useReducer states (e.g., `quizReducer.ts`).
 

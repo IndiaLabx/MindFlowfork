@@ -1,40 +1,43 @@
-import React, { useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle,
   XCircle,
   AlertTriangle,
   Info,
   Gift,
-  X
-} from 'lucide-react';
-import { useNotification, PopupVariant } from '../../../stores/useNotificationStore';
+  X,
+} from "lucide-react";
+import {
+  useNotification,
+  PopupVariant,
+} from "../../../stores/useNotificationStore";
 
 const variantStyles = {
   success: {
-    iconColor: 'text-emerald-500 dark:text-emerald-400',
+    iconColor: "text-emerald-500 dark:text-emerald-400",
     icon: CheckCircle,
-    bg: 'bg-emerald-50 dark:bg-emerald-900/30',
+    bg: "bg-emerald-50 dark:bg-emerald-900/30",
   },
   error: {
-    iconColor: 'text-red-500 dark:text-red-400',
+    iconColor: "text-red-500 dark:text-red-400",
     icon: XCircle,
-    bg: 'bg-red-50 dark:bg-red-900/30',
+    bg: "bg-red-50 dark:bg-red-900/30",
   },
   warning: {
-    iconColor: 'text-amber-500 dark:text-amber-400',
+    iconColor: "text-amber-500 dark:text-amber-400",
     icon: AlertTriangle,
-    bg: 'bg-amber-50 dark:bg-amber-900/30',
+    bg: "bg-amber-50 dark:bg-amber-900/30",
   },
   info: {
-    iconColor: 'text-blue-500 dark:text-blue-400',
+    iconColor: "text-blue-500 dark:text-blue-400",
     icon: Info,
-    bg: 'bg-blue-50 dark:bg-blue-900/30',
+    bg: "bg-blue-50 dark:bg-blue-900/30",
   },
   promotional: {
-    iconColor: 'text-fuchsia-500 dark:text-fuchsia-400',
+    iconColor: "text-fuchsia-500 dark:text-fuchsia-400",
     icon: Gift,
-    bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/30',
+    bg: "bg-fuchsia-50 dark:bg-fuchsia-900/30",
   },
 };
 
@@ -45,13 +48,13 @@ export const Popup: React.FC = () => {
   useEffect(() => {
     // Prevent scrolling when popup is active
     if (activePopup) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
     }
 
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
     };
   }, [activePopup]);
 
@@ -103,11 +106,16 @@ export const Popup: React.FC = () => {
           )}
 
           <div className="p-6">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${style.bg}`}>
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${style.bg}`}
+            >
               <Icon className={`w-6 h-6 ${style.iconColor}`} />
             </div>
 
-            <h3 id="popup-title" className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3
+              id="popup-title"
+              className="text-xl font-bold text-slate-900 dark:text-white mb-2"
+            >
               {title}
             </h3>
 
@@ -115,20 +123,26 @@ export const Popup: React.FC = () => {
               {message}
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
               {actions ? (
                 actions.map((action, index) => {
-                  const isPrimary = action.variant === 'primary' || (!action.variant && index === actions.length - 1);
-                  const isDanger = action.variant === 'danger';
+                  const isPrimary =
+                    action.variant === "primary" ||
+                    (!action.variant && index === actions.length - 1);
+                  const isDanger = action.variant === "danger";
 
-                  let btnClasses = "px-4 py-2 rounded-xl font-medium text-sm md:text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto text-center";
+                  let btnClasses =
+                    "min-h-[48px] px-6 py-3 rounded-xl font-semibold text-base transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto text-center";
 
                   if (isPrimary) {
-                    btnClasses += " bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm";
+                    btnClasses +=
+                      " bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm";
                   } else if (isDanger) {
-                    btnClasses += " bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm";
+                    btnClasses +=
+                      " bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm";
                   } else {
-                    btnClasses += " bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 focus:ring-slate-400";
+                    btnClasses +=
+                      " border border-slate-300 dark:border-slate-600 bg-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 focus:ring-slate-400";
                   }
 
                   return (
@@ -147,7 +161,7 @@ export const Popup: React.FC = () => {
               ) : (
                 <button
                   onClick={handleClose}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-medium text-sm md:text-base hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto shadow-sm"
+                  className="min-h-[48px] px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold text-base hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 w-full sm:w-auto shadow-sm"
                 >
                   OK
                 </button>
