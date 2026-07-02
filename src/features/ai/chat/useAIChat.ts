@@ -377,7 +377,7 @@ try {
 
                         const requestBody: any = {
                 messages: historyToSent.map(h => ({ role: h.role, content: h.parts[0].text })),
-                sessionId: actualConversationId,
+                sessionId: activeConvId,
                 requestedModel: activeModel
             };
 
