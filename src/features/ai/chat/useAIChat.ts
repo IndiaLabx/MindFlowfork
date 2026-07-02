@@ -3,6 +3,7 @@ import { useQuota, MODEL_CONFIGS, ModelId } from './useQuota';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useProfileStats } from '../../auth/hooks/useProfileStats';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../../../lib/supabase';
 import {
     AIChatConversation,
     AIChatMessage,
@@ -137,8 +138,7 @@ export const useAIChat = () => {
 
     const generateTitle = async (convId: string, firstMessage: string) => {
         // @ts-ignore
-        const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
-        if (!apiKey) return;
+
 
 
         // Always use the model with the highest quota for background title generation to save active model quota
@@ -274,20 +274,7 @@ export const useAIChat = () => {
         setIsLoading(true);
 
         // @ts-ignore
-        const apiKey = process.env.GOOGLE_AI_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
 
-        if (!apiKey) {
-            const errorMsg: AIChatMessage = {
-                id: uuidv4(),
-                conversation_id: activeConvId,
-                role: 'assistant',
-                content: "Error: Missing API Key. Please check your environment variables.",
-                created_at: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, errorMsg]);
-            setIsLoading(false);
-            return;
-        }
 
         const aiMessageId = uuidv4();
         // Insert empty AI message to be streamed into
