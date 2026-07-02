@@ -30,7 +30,7 @@ export const LiveQuizRoom: React.FC = () => {
         disconnect,
         toggleMute,
         changeVoice
-    } = useGenAILive({ quiz });
+    } = useGenAILive();
 
     useEffect(() => {
         const loadQuiz = async () => {
