@@ -80,7 +80,7 @@ export default defineConfig(({ mode }) => {
         // Handles fallback logic to ensure keys are populated
         'process.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL),
         'process.env.SUPABASE_ANON_KEY': JSON.stringify(env.SUPABASE_ANON_KEY),
-        'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version)
+        'import.meta.env.VITE_APP_VERSION': JSON.stringify('1.0.191')
       },
       resolve: {
         alias: {
